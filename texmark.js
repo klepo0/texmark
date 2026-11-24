@@ -255,7 +255,7 @@
     if (!inner.some((l) => /^[A-Za-z_][\w-]*:/.test(l))) return { meta: {}, body: src };
     const meta = parseYaml(inner);
     const body = lines.map((l, i) => (i <= end ? '' : l)).join('\n');
-    return { meta, body };
+    return { meta, body, frontEnd: lines.slice(0, end + 1).join('\n').length };
   }
 
   // ------------------------------------------------------------------ lex
@@ -851,6 +851,7 @@
    *   latex     the whole document: preamble, body, \end{document}
    *   bodyLine  the 1-based line of `latex` that holds source line 1
    *   sourceOffset(n)  the source offset for offset n of `latex`
+   *   sourceRange(s, e)  the whole source lines that latex[s, e) came from
    * options.compact: put the whole preamble on line 1, so that line k of
    *   `latex` is line k of the source (for editors and previews).
    * options.meta: front-matter values to add or override.
@@ -858,7 +859,7 @@
   function convert(src, options) {
     options = options || {};
     src = String(src).replace(/\r\n?/g, '\n');
-    const { meta, body: rawBody } = splitFrontMatter(src);
+    const { meta, body: rawBody, frontEnd = 0 } = splitFrontMatter(src);
     Object.assign(meta, options.meta || {});
 
     const ctx = {
@@ -901,7 +902,7 @@
       preamble,
       bodyLine,
       meta,
-      sourceOffset: offsetMapper(src, latex, bodyLine),
+      ...offsetMapper(src, latex, bodyLine, frontEnd),
     };
   }
 
@@ -912,27 +913,43 @@
   }
 
   /**
-   * A function from an offset in `latex` to the matching offset in `src`:
-   * the same line (lines match one to one), and a column scaled to the line's
-   * length, so line starts and ends map exactly. The preamble maps to 0 and
-   * what follows the body to the end of the source.
+   * Maps offsets in `latex` back to `src`. Lines match one to one (from
+   * bodyLine on). sourceOffset(n): the same line, with the column scaled to
+   * the line's length, so line starts and ends map exactly; the preamble maps
+   * to 0 and what follows the body to the end. sourceRange(s, e): the whole
+   * source lines that [s, e) touches, which is what an editor should replace;
+   * the preamble maps to the front matter.
    */
-  function offsetMapper(src, latex, bodyLine) {
+  function offsetMapper(src, latex, bodyLine, frontEnd) {
     let ls = null, ss = null;
-    return function sourceOffset(n) {
-      if (!ls) { ls = lineStarts(latex); ss = lineStarts(src); }
-      n = Math.max(0, Math.min(n, latex.length));
+    const init = () => { if (!ls) { ls = lineStarts(latex); ss = lineStarts(src); } };
+    const lineOf = (n) => {
       let lo = 0, hi = ls.length - 1;
       while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (ls[mid] <= n) lo = mid; else hi = mid - 1; }
+      return lo;
+    };
+    const sEndOf = (k) => (k + 1 < ss.length ? ss[k + 1] - 1 : src.length);
+    function sourceOffset(n) {
+      init();
+      n = Math.max(0, Math.min(n, latex.length));
+      const lo = lineOf(n);
       const k = lo - (bodyLine - 1);
       if (k < 0) return 0;
       if (k >= ss.length) return src.length;
-      const lEnd = (lo + 1 < ls.length ? ls[lo + 1] - 1 : latex.length);
-      const sEnd = (k + 1 < ss.length ? ss[k + 1] - 1 : src.length);
-      const col = n - ls[lo], lLen = lEnd - ls[lo], sLen = sEnd - ss[k];
-      if (col >= lLen) return ss[k] + sLen + (col - lLen > 0 && k + 1 < ss.length ? 1 : 0);
+      const lEnd = lo + 1 < ls.length ? ls[lo + 1] - 1 : latex.length;
+      const col = n - ls[lo], lLen = lEnd - ls[lo], sLen = sEndOf(k) - ss[k];
+      if (col >= lLen) return ss[k] + sLen + (col > lLen && k + 1 < ss.length ? 1 : 0);
       return ss[k] + (lLen ? Math.round(col * sLen / lLen) : 0);
-    };
+    }
+    function sourceRange(s, e) {
+      init();
+      const a = lineOf(Math.max(0, Math.min(s, latex.length))) - (bodyLine - 1);
+      const b = lineOf(Math.max(0, Math.min(Math.max(s, e - 1), latex.length))) - (bodyLine - 1);
+      const start = a < 0 ? 0 : a >= ss.length ? src.length : ss[a];
+      const end = b < 0 ? frontEnd : b >= ss.length ? src.length : sEndOf(b);
+      return [start, Math.max(start, end)];
+    }
+    return { sourceOffset, sourceRange };
   }
 
   /** Converts to a complete LaTeX document (a string). */

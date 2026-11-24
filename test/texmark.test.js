@@ -178,3 +178,14 @@ test('compact output keeps every line number', () => {
   for (let k = 1; k < srcLines.length; k++) assert.equal(lines[k], r.body.split('\n')[k]);
   assert.match(lines.slice(srcLines.length).join("\n"), /\\bibliography\{refs\}/);
 });
+
+test('sourceRange gives whole source lines', () => {
+  const src = '---\ntitle: T\n---\n# Intro {#sec:i}\n\nSome *text*.';
+  const r = TeXmark.convert(src);
+  const s = r.latex.indexOf('\\section');
+  const e = r.latex.indexOf('{Intro}') + 3; // inside the heading, before \label
+  assert.deepEqual(r.sourceRange(s, e), [src.indexOf('#'), src.indexOf('\n\nSome')]);
+  assert.deepEqual(r.sourceRange(0, 5), [0, '---\ntitle: T\n---'.length]); // the title block: the front matter
+  const t = r.latex.indexOf('Some');
+  assert.deepEqual(r.sourceRange(t, t + 4), [src.indexOf('Some'), src.length]);
+});

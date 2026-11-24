@@ -46,6 +46,9 @@ const { latex, body, preamble, bodyLine } = TeXmark.convert(source);
 
 `body` has exactly one line per source line, and `bodyLine` is where source
 line 1 sits in `latex`, so error messages map straight back.
+`sourceOffset(n)` and `sourceRange(s, e)` map positions in `latex` back to the
+source, and `convert(source, { compact: true })` puts the whole preamble on
+line 1 so that every line keeps its number.
 
 ## The format
 
