@@ -1,0 +1,57 @@
+---
+title: Heat flow on a toy surface
+author:
+  - name: A. N. Author
+    affiliation: Department of Examples, Nowhere University
+abstract: |
+  We show that the heat flow on a compact toy surface converges to the mean
+  of its initial data, and we say how fast.
+packages: [tikz]
+bib: refs.bib
+---
+
+\newcommand{\R}{\mathbb{R}}
+\DeclareMathOperator{\vol}{vol}
+
+# Introduction {#sec:intro}
+
+Let $M$ be a compact surface and let $u : [0,T] \times M \to \R$ solve the
+*heat equation*
+$$
+  \partial_t u = \Delta u .
+$$ {#eq:heat}
+We write $\bar u = \frac{1}{\vol M} \int_M u(0)$ for the **mean** of the data.
+
+::: theorem [Convergence] {#thm:main}
+If $M$ is compact, then $u(t) \to \bar u$ uniformly as $t \to \infty$.
+:::
+
+::: proof
+Multiply @eq:heat by $u - \bar u$ and integrate, as in [@evans2010, Ch. 7].
+:::
+
+::: remark
+The rate in @thm:main is sharp:^[Take the first eigenfunction.]
+\begin{align}
+  \|u(t) - \bar u\|_{L^2} &\le e^{-\lambda_1 t} \|u(0) - \bar u\|_{L^2} . \label{eq:rate}
+\end{align}
+:::
+
+# A picture {#sec:picture}
+
+Raw LaTeX works anywhere, so TikZ does too.
+
+\begin{center}
+\begin{tikzpicture}
+  \draw[->] (0,0) -- (3,0) node[right] {$t$};
+  \draw[->] (0,0) -- (0,2) node[above] {$\|u - \bar u\|$};
+  \draw[domain=0:2.8, smooth] plot (\x, {1.8*exp(-\x)});
+\end{tikzpicture}
+\end{center}
+
+Things to check next:
+
+1. the rate in @eq:rate on a torus,
+2. what changes for 50% of the boundary (see @sec:intro),
+   - with Dirichlet data,
+   - with Neumann data.
