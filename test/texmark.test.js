@@ -155,3 +155,26 @@ test('command line', () => {
   const out = execFileSync(process.execPath, [path.join(__dirname, '..', 'bin', 'texmark.js'), '-', '--body'], { input: '# Hi' }).toString();
   assert.equal(out, '\\section{Hi}\n');
 });
+
+test('sourceOffset maps LaTeX offsets back to the source', () => {
+  const src = '---\ntitle: T\n---\n# Intro\n\nSome *text*.\n- a';
+  const r = TeXmark.convert(src);
+  const at = (needle) => r.latex.indexOf(needle);
+  assert.equal(r.sourceOffset(0), 0); // preamble
+  assert.equal(r.sourceOffset(at('\\section')), src.indexOf('# Intro'));
+  assert.equal(r.sourceOffset(at('Some')), src.indexOf('Some'));
+  const endOfText = at('\\emph{text}.') + '\\emph{text}.'.length;
+  assert.equal(r.sourceOffset(endOfText), src.indexOf('Some *text*.') + 'Some *text*.'.length);
+  assert.equal(r.sourceOffset(r.latex.length), src.length);
+});
+
+test('compact output keeps every line number', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'examples', 'heat.tmd'), 'utf8');
+  const r = TeXmark.convert(src, { compact: true });
+  const lines = r.latex.split('\n');
+  const srcLines = src.split('\n');
+  assert.equal(r.bodyLine, 1);
+  assert.match(lines[0], /^\\documentclass\{amsart\}.*\\begin\{document\}.*\\maketitle/);
+  for (let k = 1; k < srcLines.length; k++) assert.equal(lines[k], r.body.split('\n')[k]);
+  assert.match(lines.slice(srcLines.length).join("\n"), /\\bibliography\{refs\}/);
+});

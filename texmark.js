@@ -850,6 +850,10 @@
    *   preamble  everything before the body (\documentclass … \maketitle)
    *   latex     the whole document: preamble, body, \end{document}
    *   bodyLine  the 1-based line of `latex` that holds source line 1
+   *   sourceOffset(n)  the source offset for offset n of `latex`
+   * options.compact: put the whole preamble on line 1, so that line k of
+   *   `latex` is line k of the source (for editors and previews).
+   * options.meta: front-matter values to add or override.
    */
   function convert(src, options) {
     options = options || {};
@@ -880,13 +884,54 @@
       post.push('\\bibliography{' + [].concat(bib).map((b) => String(b).replace(/\.bib$/, '')).join(',') + '}');
     }
     post.push('\\end{document}');
-    const preamble = pre.join('\n');
+    let preamble, latex, bodyLine;
+    if (options.compact) {
+      // The whole preamble on the first line, so every line keeps its number.
+      preamble = pre.map((l) => l.replace(/(^|[^\\])%.*$/gm, '$1').replace(/\n\s*\n/g, '\\par ').replace(/\n/g, ' ')).join(' ') + ' ';
+      latex = preamble + body + '\n' + post.join('\n') + '\n';
+      bodyLine = 1;
+    } else {
+      preamble = pre.join('\n');
+      latex = preamble + '\n' + body + '\n' + post.join('\n') + '\n';
+      bodyLine = pre.length + 1;
+    }
     return {
-      latex: preamble + '\n' + body + '\n' + post.join('\n') + '\n',
+      latex,
       body,
       preamble,
-      bodyLine: pre.length + 1,
+      bodyLine,
       meta,
+      sourceOffset: offsetMapper(src, latex, bodyLine),
+    };
+  }
+
+  function lineStarts(text) {
+    const starts = [0];
+    for (let i = 0; i < text.length; i++) if (text[i] === '\n') starts.push(i + 1);
+    return starts;
+  }
+
+  /**
+   * A function from an offset in `latex` to the matching offset in `src`:
+   * the same line (lines match one to one), and a column scaled to the line's
+   * length, so line starts and ends map exactly. The preamble maps to 0 and
+   * what follows the body to the end of the source.
+   */
+  function offsetMapper(src, latex, bodyLine) {
+    let ls = null, ss = null;
+    return function sourceOffset(n) {
+      if (!ls) { ls = lineStarts(latex); ss = lineStarts(src); }
+      n = Math.max(0, Math.min(n, latex.length));
+      let lo = 0, hi = ls.length - 1;
+      while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (ls[mid] <= n) lo = mid; else hi = mid - 1; }
+      const k = lo - (bodyLine - 1);
+      if (k < 0) return 0;
+      if (k >= ss.length) return src.length;
+      const lEnd = (lo + 1 < ls.length ? ls[lo + 1] - 1 : latex.length);
+      const sEnd = (k + 1 < ss.length ? ss[k + 1] - 1 : src.length);
+      const col = n - ls[lo], lLen = lEnd - ls[lo], sLen = sEnd - ss[k];
+      if (col >= lLen) return ss[k] + sLen + (col - lLen > 0 && k + 1 < ss.length ? 1 : 0);
+      return ss[k] + (lLen ? Math.round(col * sLen / lLen) : 0);
     };
   }
 
