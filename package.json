@@ -1,0 +1,14 @@
+{
+  "name": "texmark",
+  "version": "0.1.0",
+  "description": "Markdown that's secretly LaTeX: write papers without a preamble, convert to ordinary .tex",
+  "main": "texmark.js",
+  "bin": { "texmark": "bin/texmark.js" },
+  "files": ["texmark.js", "bin/", "SPEC.md"],
+  "scripts": { "test": "node --test test/*.test.js" },
+  "keywords": ["latex", "markdown", "tex", "mathematics", "texglass"],
+  "author": "Khoa Le",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/klepo0/texmark.git" },
+  "engines": { "node": ">=18" }
+}
