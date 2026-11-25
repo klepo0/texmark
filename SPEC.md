@@ -51,7 +51,7 @@ A YAML block between `---` lines at the very top.
 | Key | Meaning | Default |
 | --- | --- | --- |
 | `title` | `\title` (shortcuts and maths allowed) | none |
-| `author` | one name, a list, or a list of `name` / `affiliation` / `email` | none |
+| `author` | one name, a list of names, or a list of authors with details (below) | none |
 | `date` | `\date`; `today` gives `\today` | class default |
 | `abstract` | the abstract (use `\|` for several lines) | none |
 | `keywords`, `subjclass` | amsart `\keywords`, `\subjclass[2020]` | none |
@@ -60,6 +60,45 @@ A YAML block between `---` lines at the very top.
 | `macros` | file(s) to `\input` in the preamble | none |
 | `bib` (or `bibliography`), `bibstyle` | `.bib` file(s) and style | none, `amsplain` |
 | `numbering` | theorem numbers within `section` (or `chapter`…), or `global` | `section` |
+
+### Authors
+
+Each author in the list may be a name or a map with these keys:
+
+| Key | Meaning |
+| --- | --- |
+| `name` | the name (required) |
+| `affiliation` | one institute, or a list (`[A, B]` or `- A` lines); `affiliations`, `affil`, `institute`, `institution` and `address` mean the same |
+| `email` | the email address |
+| `orcid` | an ORCID iD (`0000-0002-…`) or its URL |
+| `thanks` | a footnote on the name: funding, "corresponding author" |
+| `curraddr` | current address, if it differs from the affiliation |
+
+```yaml
+author:
+  - name: Ann Smith
+    affiliation:
+      - University of Leeds
+      - University of Oxford
+    email: ann@example.org
+  - name: Bob Jones
+    affiliation: University of Leeds
+    thanks: Supported by a grant.
+```
+
+How it comes out depends on the class:
+
+- **amsart** (and amsbook, amsproc): per author `\author`, one `\address` per
+  institute, `\curraddr`, `\email`, `\urladdr{https://orcid.org/…}` and
+  `\thanks`.
+- **article, report, book**: when every author has at most one institute and
+  no two share one, a single `\author{Name\\ Institute\\ \texttt{email}
+  \and …}`. Otherwise authblk (loaded for you) numbers each institute once:
+  `\author[1,2]{Ann Smith}`, `\author[1]{Bob Jones}`, `\affil[1]{University
+  of Leeds}`, with the email in a `\thanks`. `thanks`, `orcid` and `curraddr`
+  are `\thanks` footnotes.
+- **beamer**: `\author{Ann Smith\inst{1,2} \and …}` and `\institute{\inst{1}
+  University of Leeds \and …}`, with the emails on the last line.
 
 ## 4. Prose shortcuts
 

@@ -144,6 +144,23 @@ test('front matter and preamble', () => {
   assert.match(r.latex, /\\end\{document\}\n$/);
 });
 
+test('authors with institutes', () => {
+  const head = (cls) => '---\nclass: ' + cls + '\nauthor:\n  - name: Ann\n    affiliation:\n      - Leeds\n      - Oxford\n' +
+    '    email: ann@example.org\n    orcid: 0000-0002-1825-0097\n  - name: Bob\n    institute: Leeds\n    thanks: Funded.\n  - name: Cy\n    affiliation: [ETH, MIT]\n---\nx';
+  const ams = TeXmark.convert(head('amsart')).preamble;
+  assert.match(ams, /\\author\{Ann\}\n\\address\{Leeds\}\n\\address\{Oxford\}\n\\email\{ann@example\.org\}\n\\urladdr\{https:\/\/orcid\.org\/0000-0002-1825-0097\}\n\\author\{Bob\}\n\\address\{Leeds\}\n\\thanks\{Funded\.\}\n\\author\{Cy\}\n\\address\{ETH\}\n\\address\{MIT\}/);
+  const art = TeXmark.convert(head('article')).preamble;
+  assert.match(art, /\\usepackage\{authblk\}\n\\author\[1,2\]\{Ann\\thanks\{ORCID: 0000-0002-1825-0097\}\\thanks\{\\texttt\{ann@example\.org\}\}\}\n\\author\[1\]\{Bob\\thanks\{Funded\.\}\}\n\\author\[3,4\]\{Cy\}\n\\affil\[1\]\{Leeds\}\n\\affil\[2\]\{Oxford\}\n\\affil\[3\]\{ETH\}\n\\affil\[4\]\{MIT\}/);
+  const bea = TeXmark.convert(head('beamer')).preamble;
+  assert.match(bea, /\\author\{Ann\\inst\{1,2\} \\and Bob\\inst\{1\} \\and Cy\\inst\{3,4\}\}\n\\institute\{\\inst\{1\} Leeds \\and \\inst\{2\} Oxford \\and \\inst\{3\} ETH \\and \\inst\{4\} MIT\\\\ \\texttt\{ann@example\.org\}\}/);
+  // One institute each, none shared: plain \author, email kept.
+  const one = TeXmark.convert('---\nclass: article\nauthor:\n  - name: A\n    affiliation: Leeds\n    email: a@x.org\n  - name: B\n    address: Oxford\n---\nx').preamble;
+  assert.match(one, /\\author\{A\\\\ Leeds\\\\ \\texttt\{a@x\.org\} \\and B\\\\ Oxford\}/);
+  assert.doesNotMatch(one, /authblk/);
+  // Front matter lines still map one to one.
+  assert.equal(TeXmark.convert(head('amsart')).body.split('\n').length, 16);
+});
+
 test('\\usepackage and \\DeclareMathOperator in the body move to the preamble', () => {
   const r = TeXmark.convert('\\usepackage{bbm}\n\\DeclareMathOperator{\\tr}{tr}\nx');
   assert.equal(r.body, '\n\nx');

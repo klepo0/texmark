@@ -69,7 +69,8 @@ See [SPEC.md](SPEC.md). In short:
 - `::: theorem [Title] {#thm:x}` … `:::` blocks, declared for you
 - `@thm:x` references (`\cref`), `[@key, p. 3]` citations, `^[footnotes]`
 - `[links](https://…)`, `![figures](file.pdf){#fig:x width=60%}`
-- an optional YAML header for title, authors, abstract, packages and `.bib`
+- an optional YAML header for title, authors (with institutes, email, ORCID),
+  abstract, packages and `.bib`
 - anything else is LaTeX, and maths and environments are never touched
 
 ## License
