@@ -2,7 +2,7 @@
   "name": "texmark",
   "displayName": "TeXmark",
   "description": "Language support for TeXmark (.tmd), Markdown that's secretly LaTeX: syntax highlighting, snippets, completion for labels, citations and macros, outline, Convert to .tex and Build PDF.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "klepo1",
   "icon": "images/icon.png",
   "galleryBanner": {
