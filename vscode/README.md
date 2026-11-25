@@ -41,12 +41,37 @@ working anywhere.
   extension: rendered maths, numbered theorems, working references and its
   reading tools, with no LaTeX installation needed. TeXmark offers to install
   it the first time you open the preview.
-- **Ctrl+B** and **Ctrl+I** toggle `**bold**` and `*italic*`.
+- **Auto-closing maths.** `$` gives `$ $`, a second `$` gives `$$ $$`, `\(`
+  gives `\( \)` and `\[` gives `\[ \]`. Typing the closer goes over it, and
+  backspace in an empty pair removes both sides. Add your own pairs, such as
+  `\left(` … `\right)`.
+- **Ctrl+B** and **Ctrl+I** toggle `**bold**` and `*italic*`; with nothing
+  selected, backspace between the marks removes both.
 
 ## Settings
 
+Every automatic feature can be turned off or adjusted.
+
 | Setting | Default | |
 | --- | --- | --- |
+| `texmark.autoClose.enabled` | `true` | close maths delimiters as you type |
+| `texmark.autoClose.pairs` | `$`, `$$`, `\(`, `\[` | opener → closer; add your own or remove one |
+| `texmark.completion.labels` | `true` | labels after `@` and in `\ref{…}` |
+| `texmark.completion.citations` | `true` | `.bib` keys after `[@` and in `\cite{…}` |
+| `texmark.completion.macros` | `true` | your macros after `\` |
+| `texmark.completion.latexCommands` | `true` | common LaTeX commands after `\` |
+| `texmark.completion.extraCommands` | `[]` | more commands: `"Hom"` or `{ "name": "norm", "snippet": "norm{${1}}" }` |
+| `texmark.completion.environments` | `true` | environments in `\begin{…}` |
+| `texmark.completion.environmentEnd` | `true` | add the matching `\end{…}` |
+| `texmark.completion.blocks` | `true` | theorem kinds after `:::` |
+| `texmark.completion.frontMatter` | `true` | front-matter keys |
+| `texmark.completion.snippets` | `true` | the snippets |
+| `texmark.completion.customSnippets` | `{}` | your snippets by name (VS Code format); a built-in name replaces it, `null` removes it |
+| `texmark.hover.enabled` | `true` | hovers on labels, citations and macros |
+| `texmark.lint.references` | `true` | underline references to missing labels |
+| `texmark.lint.citations` | `true` | underline citations missing from the `.bib` |
+| `texmark.shortcuts.bold` | `true` | Ctrl+B toggles bold |
+| `texmark.shortcuts.italic` | `true` | Ctrl+I toggles italic (turn off to keep Ctrl+I for inline chat) |
 | `texmark.build.tool` | `latexmk` | `engine` runs the engine, BibTeX, then the engine twice (no Perl needed) |
 | `texmark.build.engine` | `pdflatex` | or `xelatex`, `lualatex` |
 | `texmark.build.outDir` | `.texmark` | build folder, relative to the `.tmd` file |
@@ -54,8 +79,9 @@ working anywhere.
 | `texmark.build.onSave` | `false` | build every time you save |
 | `texmark.build.openPdf` | `false` | open the PDF after a build |
 | `texmark.pdf.viewer` | `auto` | a VS Code tab when a PDF viewer extension is installed, else the system viewer |
-| `texmark.lint.references` | `true` | underline missing labels and citations |
-| `texmark.italicShortcut` | `true` | Ctrl+I toggles italic (turn off to keep Ctrl+I for inline chat) |
+
+Keyboard shortcuts can be changed in VS Code's Keyboard Shortcuts editor
+(search for "TeXmark").
 
 ## Requirements
 

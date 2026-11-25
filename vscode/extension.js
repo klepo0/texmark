@@ -8,6 +8,7 @@ const path = require('path');
 const scan = require('./lib/scan.js');
 const build = require('./lib/build.js');
 const LATEX = require('./lib/latex.js');
+const autoclose = require('./lib/autoclose.js');
 
 let TeXmark;
 try { TeXmark = require('./lib/texmark.js'); } catch { TeXmark = require('../texmark.js'); }
@@ -83,13 +84,15 @@ function inFrontMatter(doc, position) {
 const completion = {
   async provideCompletionItems(doc, position) {
     const before = doc.lineAt(position.line).text.slice(0, position.character);
-    const ctx = scan.completionContext(before, { inFrontMatter: inFrontMatter(doc, position) });
-    if (!ctx) return undefined;
+    const front = inFrontMatter(doc, position);
+    const ctx = scan.completionContext(before, { inFrontMatter: front });
+    const on = (k) => cfg().get('completion.' + k, true);
+    if (!ctx) return front || !on('snippets') ? undefined : snippetItems(before, position);
     const range = rangeFrom(position, ctx.start);
     const items = [];
     const text = doc.getText();
 
-    if (ctx.type === 'label' || ctx.type === 'cite') {
+    if ((ctx.type === 'label' && on('labels')) || (ctx.type === 'cite' && on('labels') && on('citations'))) {
       for (const l of scan.labels(text)) {
         const it = new vscode.CompletionItem(l.name, vscode.CompletionItemKind.Reference);
         it.range = range;
@@ -99,7 +102,7 @@ const completion = {
         items.push(it);
       }
     }
-    if (ctx.type === 'cite') {
+    if (ctx.type === 'cite' && on('citations')) {
       for (const e of await bibEntries(doc)) {
         const it = new vscode.CompletionItem(e.key, vscode.CompletionItemKind.Value);
         it.range = range;
@@ -112,7 +115,7 @@ const completion = {
     }
     if (ctx.type === 'command') {
       const math = scan.inMath(text, doc.offsetAt(position));
-      for (const m of await allMacros(doc)) {
+      for (const m of on('macros') ? await allMacros(doc) : []) {
         const it = new vscode.CompletionItem('\\' + m.name, vscode.CompletionItemKind.Function);
         it.range = range;
         it.insertText = new vscode.SnippetString('\\\\' + m.name + Array.from({ length: m.args }, (_, i) => '{${' + (i + 1) + '}}').join(''));
@@ -127,49 +130,74 @@ const completion = {
           it.range = range;
           it.insertText = new vscode.SnippetString('\\\\' + (body || name.replace(/[$}\\]/g, '\\$&')));
           if (detail) it.detail = detail;
+          // \begin opens the environment list, which fills in arguments, body and \end.
+          if (name === 'begin') it.command = { command: 'editor.action.triggerSuggest', title: 'Environments' };
           it.sortText = rank + name;
           items.push(it);
         }
       };
-      add(LATEX.MATH, vscode.CompletionItemKind.Constant, math ? '1' : '3');
-      add(LATEX.TEXT, vscode.CompletionItemKind.Keyword, math ? '3' : '1');
+      if (on('latexCommands')) {
+        add(LATEX.MATH, vscode.CompletionItemKind.Constant, math ? '1' : '3');
+        add(LATEX.TEXT, vscode.CompletionItemKind.Keyword, math ? '3' : '1');
+      }
+      // The reader's own commands (texmark.completion.extraCommands), first.
+      const extra = (cfg().get('completion.extraCommands', []) || []).map((c) => (typeof c === 'string'
+        ? [c.replace(/^\\/, '')]
+        : c && c.name ? [String(c.name).replace(/^\\/, ''), c.snippet ? String(c.snippet).replace(/^\\/, '') : undefined, c.detail] : null)).filter(Boolean);
+      add(extra, vscode.CompletionItemKind.Function, '0');
     }
-    if (ctx.type === 'env') {
+    if (ctx.type === 'env' && on('environments')) {
       const isBegin = /\\begin\s*\{[A-Za-z*]*$/.test(before);
       const after = doc.lineAt(position.line).text.slice(position.character);
-      const closing = /^[A-Za-z*]*\}/.exec(after);
+      const rest = /^[A-Za-z*]*/.exec(after)[0];
+      const hasClose = after[rest.length] === '}';
+      // Is the matching \end already there? The \begin completion (and a snippet)
+      // writes \end{env} with the same name, which mirrors what is typed here.
+      const word = ctx.prefix + rest;
+      const ahead = text.slice(doc.offsetAt(position), doc.offsetAt(position) + 4000);
+      const next = /\\(begin|end)\s*\{([^}]*)\}/.exec(ahead.slice(rest.length + (hasClose ? 1 : 0)));
+      const endThere = !!next && next[1] === 'end' && next[2] === word;
+      const addEnd = isBegin && on('environmentEnd') && !endThere && !/\\end\s*\{/.test(after);
+      const theoremKinds = new Set(Object.keys(scan.KIND_NAMES).filter((k) => k !== 'proof')
+        .concat(scan.environments(text).filter((e) => e.theorem).map((e) => e.name)));
       const envs = LATEX.ENVIRONMENTS.concat(scan.environments(text).map((e) => [e.name, e.printed || 'declared in this file']));
       const seen = new Set();
       for (const [name, detail] of envs) {
         if (seen.has(name)) continue;
         seen.add(name);
         const it = new vscode.CompletionItem(name, vscode.CompletionItemKind.Module);
-        it.range = new vscode.Range(position.line, ctx.start, position.line, position.character + (closing ? closing[0].length : 0));
         if (detail) it.detail = detail;
-        if (isBegin && !/\\end\s*\{/.test(after)) {
+        if (addEnd) {
           const indent = /^\s*/.exec(doc.lineAt(position.line).text)[0];
-          it.insertText = new vscode.SnippetString(name + '}\n' + indent + '\t$0\n' + indent + '\\\\end{' + name + '}');
+          it.range = new vscode.Range(position.line, ctx.start, position.line, position.character + rest.length + (hasClose ? 1 : 0));
+          it.insertText = new vscode.SnippetString(envSnippet(name, indent, theoremKinds));
         } else {
-          it.insertText = name + '}';
+          // Only the name, inside the braces, so a snippet's mirrored \end{…} follows it.
+          it.range = new vscode.Range(position.line, ctx.start, position.line, position.character + rest.length);
+          it.insertText = hasClose ? name : name + '}';
         }
         items.push(it);
       }
     }
-    if (ctx.type === 'block') {
+    if (ctx.type === 'block' && on('blocks')) {
       const kinds = Object.keys(scan.KIND_NAMES).concat(scan.environments(text).map((e) => e.name));
-      for (const k of [...new Set(kinds)]) {
+      // ":::" with no space yet gets one.
+      const space = /\s$/.test(before.slice(0, ctx.start)) ? '' : ' ';
+      [...new Set(kinds)].forEach((k, i) => {
         const it = new vscode.CompletionItem(k, vscode.CompletionItemKind.Struct);
         it.range = range;
         it.detail = scan.kindName(k);
-        const prefix = (scan.ALIASES && Object.keys(scan.ALIASES).find((a) => scan.ALIASES[a] === k)) || k.slice(0, 3);
+        const prefix = scan.labelPrefix(k);
+        // Tab stops: the title, then the label, then the body. Delete [Title] or {#…} when not wanted.
         it.insertText = k === 'proof'
-          ? new vscode.SnippetString('proof\n$0\n:::')
-          : new vscode.SnippetString(k + '${1: [${2:Title}]}${3: {#' + prefix + ':${4:label}\\}}\n$0\n:::');
+          ? new vscode.SnippetString(space + 'proof\n$0\n:::')
+          : new vscode.SnippetString(space + k + ' [${1:Title}] {#' + prefix + ':${2:label}\\}\n$0\n:::');
         it.filterText = k;
+        it.sortText = String(i).padStart(3, '0');
         items.push(it);
-      }
+      });
     }
-    if (ctx.type === 'front') {
+    if (ctx.type === 'front' && on('frontMatter')) {
       for (const [key, body, detail] of LATEX.FRONT_MATTER) {
         const it = new vscode.CompletionItem(key, vscode.CompletionItemKind.Property);
         it.range = range;
@@ -181,6 +209,54 @@ const completion = {
     return new vscode.CompletionList(items, false);
   },
 };
+
+// Snippets are offered here rather than through a snippets contribution, so
+// they stay out of \begin{…}, \commands and @labels: "align" after \begin{
+// is the environment name, not a second \begin{align}.
+const SNIPPETS = require('./snippets/texmark.json');
+
+/**
+ * The snippet after "\\begin{" for environment `name`: its arguments, the body
+ * with tab stops, and the \\end. Theorem kinds get [Title] and a label.
+ */
+function envSnippet(name, indent, theoremKinds) {
+  let t = LATEX.ENV_TEMPLATES[name];
+  if (!t && theoremKinds.has(name.replace(/\*$/, ''))) {
+    t = /\*$/.test(name)
+      ? { args: '[${1:Title}]', body: '${2}' }
+      : { args: '[${1:Title}]\\label{' + scan.labelPrefix(name) + ':${2:label}}', body: '${3}' };
+  }
+  t = t || { body: '' };
+  const inner = indent + '\t';
+  const body = (t.body || '').split('\n').map((l) => (l.startsWith('\t') ? inner + l : inner + l)).join('\n');
+  const close = indent + '\\end{' + name.replace(/[$}\\]/g, '\\$&') + '}';
+  return name.replace(/[$}\\]/g, '\\$&') + '}' + (t.args || '') + '\n' + body + (t.body ? '' : '$0') + '\n' + close + (t.body ? '$0' : '');
+}
+
+function snippetItems(before, position) {
+  const word = /[A-Za-z*]*$/.exec(before)[0];
+  // Not in the middle of a word that follows a backslash, @, : or {.
+  const prev = before[before.length - word.length - 1];
+  if (prev && /[\\@:{\w]/.test(prev)) return undefined;
+  const range = rangeFrom(position, position.character - word.length);
+  const items = [];
+  // texmark.completion.customSnippets adds snippets, replaces built-in ones by
+  // name, and removes one set to null.
+  const all = { ...SNIPPETS, ...(cfg().get('completion.customSnippets', {}) || {}) };
+  for (const [name, sn] of Object.entries(all)) {
+    if (!sn || !sn.prefix || !sn.body) continue;
+    for (const prefix of [].concat(sn.prefix)) {
+      const it = new vscode.CompletionItem({ label: prefix, description: name }, vscode.CompletionItemKind.Snippet);
+      it.range = range;
+      it.insertText = new vscode.SnippetString([].concat(sn.body).join('\n'));
+      it.detail = sn.description;
+      it.documentation = new vscode.MarkdownString().appendCodeblock([].concat(sn.body).join('\n').replace(/\$\{\d+:?([^{}]*)\}|\$\d/g, '$1').replace(/\\\\/g, '\\'), LANG);
+      it.sortText = '~' + prefix;
+      items.push(it);
+    }
+  }
+  return new vscode.CompletionList(items, false);
+}
 
 function bibMarkdown(e) {
   const parts = [];
@@ -240,6 +316,7 @@ const definition = {
 
 const hover = {
   async provideHover(doc, position) {
+    if (!cfg().get('hover.enabled', true)) return undefined;
     const at = keyAt(doc, position);
     if (!at) return undefined;
     if (at.kind === 'macro') {
@@ -328,7 +405,8 @@ const lint = vscode.languages.createDiagnosticCollection('texmark');
 
 async function checkReferences(doc) {
   if (!isTmd(doc)) return;
-  if (!cfg().get('lint.references', true)) { lint.delete(doc.uri); return; }
+  const lintRefs = cfg().get('lint.references', true), lintCites = cfg().get('lint.citations', true);
+  if (!lintRefs && !lintCites) { lint.delete(doc.uri); return; }
   const text = doc.getText();
   const labels = new Set(scan.labels(text).map((l) => l.name));
   const bibs = scan.bibFiles(text);
@@ -357,7 +435,7 @@ async function checkReferences(doc) {
         const key = k[1];
         if (labels.has(key) || !keys || keys.has(key)) continue;
         const col = m.index + 1 + k.index + 1;
-        diags.push(warn(line, col, key.length, `No entry "${key}" in ${bibs.join(', ')}.`));
+        if (lintCites) diags.push(warn(line, col, key.length, `No entry "${key}" in ${bibs.join(', ')}.`));
       }
     }
     // @label outside brackets: \cref when the key is a label or contains ':'.
@@ -366,14 +444,14 @@ async function checkReferences(doc) {
       if (inCite.some(([a, b]) => m.index >= a && m.index < b)) continue;
       const key = m[1];
       if (labels.has(key) || !key.includes(':')) continue;
-      diags.push(warn(line, m.index + 1, key.length, `No label "${key}" in this file.`));
+      if (lintRefs) diags.push(warn(line, m.index + 1, key.length, `No label "${key}" in this file.`));
     }
     const tex = /\\(?:[cC]ref|ref|eqref|autoref|pageref|nameref)\s*\{([^}]*)\}/g;
     while ((m = tex.exec(masked))) {
       let col = m.index + m[0].indexOf('{') + 1;
       for (const part of m[1].split(',')) {
         const key = part.trim();
-        if (key && !labels.has(key)) diags.push(warn(line, col + part.indexOf(key), key.length, `No label "${key}" in this file.`));
+        if (lintRefs && key && !labels.has(key)) diags.push(warn(line, col + part.indexOf(key), key.length, `No label "${key}" in this file.`));
         col += part.length + 1;
       }
     }
@@ -633,7 +711,99 @@ async function toggleWrap(mark) {
     if (back === mark + mark) {
       const p = pos.translate(0, -mark.length);
       ed.selection = new vscode.Selection(p, p);
+      // Typing ** goes over the closing marks, and backspace removes both sides.
+      pendingClose.set(doc2.uri.toString(), { line: p.line, open: mark, close: mark, full: mark, openEnd: p.character, at: p.character });
     }
+  }
+}
+
+// ------------------------------------------------------------ auto-closing
+
+const pendingClose = new Map(); // document uri -> { line, ...autoclose pending }
+let applying = false;
+
+function autoClosePairs() {
+  const pairs = cfg().get('autoClose.pairs', autoclose.DEFAULT_PAIRS) || {};
+  const out = {};
+  for (const [open, close] of Object.entries(pairs)) if (open && typeof close === 'string' && close) out[open] = close;
+  return out;
+}
+
+async function onTyped(e) {
+  if (applying || !isTmd(e.document) || e.contentChanges.length !== 1) return;
+  if (e.reason) { pendingClose.delete(e.document.uri.toString()); return; } // undo or redo
+  const ed = vscode.window.activeTextEditor;
+  if (!ed || ed.document !== e.document || ed.selections.length !== 1) return;
+  const key = e.document.uri.toString();
+  const ch = e.contentChanges[0];
+  const lineNo = ch.range.start.line;
+  const p = pendingClose.get(key);
+  const pending = p && p.line === lineNo ? p : null;
+  if (!cfg().get('autoClose.enabled', true)) { pendingClose.delete(key); return; }
+  const line = e.document.lineAt(lineNo).text;
+  let act = null;
+  let col;
+  if (ch.rangeLength === 0 && ch.text.length === 1 && ch.text !== '\n') {
+    col = ch.range.start.character + 1;
+    const typed = ch.text;
+    const inMath = typed === '$' ? scan.inMath(e.document.getText(), e.document.offsetAt(ch.range.start)) : false;
+    act = autoclose.decide({ line, col, typed, pairs: autoClosePairs(), pending, inMath });
+    if (!act && pending) {
+      // Typed somewhere else on the line: keep the closer's column right.
+      const c = ch.range.start.character;
+      if (c <= pending.at) pendingClose.set(key, { ...pending, at: pending.at + 1, openEnd: c < pending.openEnd ? pending.openEnd + 1 : pending.openEnd });
+      return;
+    }
+  } else if (ch.rangeLength === 0 && /^(\(\)|\[\]|\{\})$/.test(ch.text)) {
+    // VS Code closed a bracket itself: ( gave (). After a backslash that may be
+    // our \( or \[, whose closer then replaces VS Code's.
+    col = ch.range.start.character + 1;
+    const virtual = line.slice(0, col) + line.slice(col + 1);
+    const a = autoclose.decide({ line: virtual, col, typed: ch.text[0], pairs: autoClosePairs(), pending, inMath: false });
+    if (!a || a.insert === undefined) return;
+    act = { ...a, replaceOne: true };
+  } else if (ch.text === '' && ch.rangeLength === 1 && ch.range.isSingleLine) {
+    col = ch.range.start.character;
+    const d = autoclose.onDelete({ line, col, pending });
+    if (d) act = { removeBefore: d.before, removeAfter: d.after, pending: null };
+    else if (pending) {
+      if (col < pending.at) pendingClose.set(key, { ...pending, at: pending.at - 1, openEnd: col < pending.openEnd ? pending.openEnd - 1 : pending.openEnd });
+      else pendingClose.delete(key);
+      return;
+    }
+  } else {
+    pendingClose.delete(key);
+    return;
+  }
+  if (!act) return;
+  const pos = new vscode.Position(lineNo, col);
+  applying = true;
+  try {
+    await ed.edit((b) => {
+      if (act.replaceOne) b.replace(new vscode.Range(pos, pos.translate(0, 1)), act.insert);
+      else if (act.insert !== undefined && act.insert) b.insert(pos, act.insert);
+      if (act.restore !== undefined && act.restore) b.insert(pos, act.restore);
+      if (act.remove) b.delete(new vscode.Range(pos, pos.translate(0, act.remove)));
+      if (act.removeAfter) b.delete(new vscode.Range(pos.translate(0, -act.removeBefore), pos.translate(0, act.removeAfter)));
+    }, { undoStopBefore: false, undoStopAfter: false });
+    const at = act.removeBefore ? pos.translate(0, -act.removeBefore) : pos;
+    ed.selection = new vscode.Selection(at, at);
+  } finally {
+    applying = false;
+  }
+  if (act.pending) pendingClose.set(key, { line: lineNo, ...act.pending });
+  else pendingClose.delete(key);
+}
+
+function onSelection(e) {
+  const key = e.textEditor.document.uri.toString();
+  const p = pendingClose.get(key);
+  if (!p || applying) return;
+  // The editor's selection now, not the event's: events from our own edits arrive late.
+  const sels = e.textEditor.selections;
+  const s = sels[0];
+  if (sels.length !== 1 || !s.isEmpty || s.active.line !== p.line || s.active.character < p.openEnd || s.active.character > p.at) {
+    pendingClose.delete(key);
   }
 }
 
@@ -664,7 +834,8 @@ function activate(context) {
     timers.set(k, setTimeout(() => { timers.delete(k); checkReferences(doc); }, 400));
   };
   sub(vscode.workspace.onDidOpenTextDocument(later));
-  sub(vscode.workspace.onDidChangeTextDocument((e) => later(e.document)));
+  sub(vscode.workspace.onDidChangeTextDocument((e) => { later(e.document); onTyped(e); }));
+  sub(vscode.window.onDidChangeTextEditorSelection(onSelection));
   sub(vscode.workspace.onDidCloseTextDocument((doc) => { lint.delete(doc.uri); buildDiags.delete(doc.uri); }));
   sub(vscode.workspace.onDidSaveTextDocument((doc) => {
     if (doc.languageId === 'bibtex' || /\.bib$/i.test(doc.fileName)) {

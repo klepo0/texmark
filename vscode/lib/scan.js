@@ -21,6 +21,17 @@ const ALIASES = {
 };
 const HEADING_KINDS = ['section', 'subsection', 'subsubsection', 'paragraph', 'subparagraph'];
 
+/** The label prefix for a kind: theorem → thm, definition → def, claim → claim. */
+const PREFIXES = {
+  theorem: 'thm', lemma: 'lem', proposition: 'prop', corollary: 'cor', conjecture: 'conj',
+  definition: 'def', remark: 'rem', example: 'ex', assumption: 'assum', hypothesis: 'hyp',
+  notation: 'nota', exercise: 'exer', question: 'ques', problem: 'prob', equation: 'eq', figure: 'fig', table: 'tab',
+};
+function labelPrefix(kind) {
+  const k = String(kind || '').replace(/\*$/, '');
+  return PREFIXES[ALIASES[k] || k] || k;
+}
+
 /** The printed name of a block kind: "thm" and "theorem" give "Theorem". */
 function kindName(kind) {
   const k = String(kind || '').replace(/\*$/, '');
@@ -192,10 +203,10 @@ function macros(text) {
 /** Environments the file declares with \newtheorem or \newenvironment. */
 function environments(text) {
   const out = [];
-  const re = /\\(?:newtheorem|newenvironment|renewenvironment|NewDocumentEnvironment)\*?\s*\{([^}]+)\}(?:\s*\[[^\]]*\])?(?:\s*\{([^}]*)\})?/g;
+  const re = /\\(newtheorem|newenvironment|renewenvironment|NewDocumentEnvironment)\*?\s*\{([^}]+)\}(?:\s*\[[^\]]*\])?(?:\s*\{([^}]*)\})?/g;
   let m;
   const src = lines(text).map((l) => (l.kind === 'body' ? stripComment(l.text) : '')).join('\n');
-  while ((m = re.exec(src))) out.push({ name: m[1].trim(), printed: m[2] && !/\\/.test(m[2]) ? m[2] : '' });
+  while ((m = re.exec(src))) out.push({ name: m[2].trim(), printed: m[3] && !/\\/.test(m[3]) ? m[3] : '', theorem: m[1] === 'newtheorem' });
   return out;
 }
 
@@ -428,5 +439,5 @@ function inMath(text, offset) {
 
 module.exports = {
   lines, labels, macros, environments, parseBib, shortAuthors, frontMatter, bibFiles, macroFiles,
-  outline, completionContext, inMath, kindName, KIND_NAMES, ALIASES,
+  outline, completionContext, inMath, kindName, labelPrefix, KIND_NAMES, ALIASES,
 };
