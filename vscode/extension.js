@@ -177,17 +177,21 @@ const completion = {
     }
     if (ctx.type === 'block' && on('blocks')) {
       const kinds = Object.keys(scan.KIND_NAMES).concat(scan.environments(text).map((e) => e.name));
-      for (const k of [...new Set(kinds)]) {
+      // ":::" with no space yet gets one.
+      const space = /\s$/.test(before.slice(0, ctx.start)) ? '' : ' ';
+      [...new Set(kinds)].forEach((k, i) => {
         const it = new vscode.CompletionItem(k, vscode.CompletionItemKind.Struct);
         it.range = range;
         it.detail = scan.kindName(k);
         const prefix = (scan.ALIASES && Object.keys(scan.ALIASES).find((a) => scan.ALIASES[a] === k)) || k.slice(0, 3);
+        // Tab stops: the title, then the label, then the body. Delete [Title] or {#…} when not wanted.
         it.insertText = k === 'proof'
-          ? new vscode.SnippetString('proof\n$0\n:::')
-          : new vscode.SnippetString(k + '${1: [${2:Title}]}${3: {#' + prefix + ':${4:label}\\}}\n$0\n:::');
+          ? new vscode.SnippetString(space + 'proof\n$0\n:::')
+          : new vscode.SnippetString(space + k + ' [${1:Title}] {#' + prefix + ':${2:label}\\}\n$0\n:::');
         it.filterText = k;
+        it.sortText = String(i).padStart(3, '0');
         items.push(it);
-      }
+      });
     }
     if (ctx.type === 'front' && on('frontMatter')) {
       for (const [key, body, detail] of LATEX.FRONT_MATTER) {
