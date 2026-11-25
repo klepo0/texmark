@@ -116,7 +116,7 @@ const ENV_TEMPLATES = {
 /** Front-matter keys (SPEC §3). */
 const FRONT_MATTER = [
   ['title', 'title: ${1}', 'The title (shortcuts and maths allowed)'],
-  ['author', 'author: ${1}', 'One name, or a list of names or name/affiliation/email'],
+  ['author', 'author: ${1}', 'One name, or a list of names or name/affiliation/email/orcid/thanks'],
   ['date', 'date: ${1:today}', '"today" gives \\today'],
   ['abstract', 'abstract: |\n  ${1}', 'The abstract'],
   ['keywords', 'keywords: ${1}', 'amsart \\keywords'],

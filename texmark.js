@@ -224,13 +224,26 @@
       } else if (v === '') {
         const items = [];
         while (i + 1 < lines.length && /^\s+-\s*/.test(lines[i + 1])) {
-          const first = lines[++i].replace(/^\s+-\s*/, '');
+          const dash = /^\s*/.exec(lines[++i])[0].length;
+          const first = lines[i].replace(/^\s+-\s*/, '');
           const kv = /^([A-Za-z_][\w-]*):\s*(.*)$/.exec(first);
           if (kv) {
-            const item = { [kv[1].toLowerCase()]: unquote(kv[2]) };
+            // A value is a scalar, an [a, b] list, or "- x" lines indented deeper than this item's dash.
+            const value = (v) => {
+              v = v.trim();
+              if (v[0] === '[') return parseInlineList(v);
+              if (v !== '') return unquote(v);
+              const sub = [];
+              let mm;
+              while (i + 1 < lines.length && (mm = /^(\s+)-\s*(.*)$/.exec(lines[i + 1])) && mm[1].length > dash) {
+                sub.push(unquote(mm[2])); i++;
+              }
+              return sub.length ? sub : '';
+            };
+            const item = { [kv[1].toLowerCase()]: value(kv[2]) };
             while (i + 1 < lines.length && /^\s{2,}[A-Za-z_][\w-]*:/.test(lines[i + 1]) && !/^\s+-/.test(lines[i + 1])) {
               const k2 = /^\s+([A-Za-z_][\w-]*):\s*(.*)$/.exec(lines[++i]);
-              item[k2[1].toLowerCase()] = unquote(k2[2]);
+              item[k2[1].toLowerCase()] = value(k2[2]);
             }
             items.push(item);
           } else items.push(unquote(first));
@@ -750,11 +763,71 @@
     return restore(ctx, inline(ctx, lex(String(v), ctx)));
   }
 
+  const AFFIL_KEYS = ['affiliation', 'affiliations', 'affil', 'institute', 'institution', 'address'];
+
+  /** Authors as { name, affils: [], email, orcid, thanks, curraddr } (SPEC §3). */
   function authorsOf(meta) {
     const a = meta.author || meta.authors;
     if (!a) return [];
     const list = Array.isArray(a) ? a : [a];
-    return list.map((x) => (typeof x === 'object' ? x : { name: x })).filter((x) => x.name);
+    const many = (v) => [].concat(v == null ? [] : v).map((x) => String(x).trim()).filter(Boolean);
+    return list.map((x) => (typeof x === 'object' ? x : { name: x })).filter((x) => x.name).map((x) => ({
+      name: x.name,
+      affils: many(AFFIL_KEYS.map((k) => x[k]).find((v) => v != null && v !== '')),
+      email: many(x.email)[0], orcid: many(x.orcid)[0],
+      thanks: many(x.thanks)[0], curraddr: many(x.curraddr)[0],
+    }));
+  }
+
+  function orcidUrl(id) { return /^https?:/.test(id) ? id : 'https://orcid.org/' + id; }
+
+  /** \author … lines for the class: amsart blocks, beamer \inst marks, authblk, or a plain \author. */
+  function authorLines(ctx, authors, cls, ams, userPkgs) {
+    const iv = (v) => inlineValue(ctx, v);
+    const lines = [];
+    if (ams) {
+      for (const a of authors) {
+        lines.push('\\author{' + iv(a.name) + '}');
+        a.affils.forEach((f) => lines.push('\\address{' + iv(f) + '}'));
+        if (a.curraddr) lines.push('\\curraddr{' + iv(a.curraddr) + '}');
+        if (a.email) lines.push('\\email{' + a.email + '}');
+        if (a.orcid) lines.push('\\urladdr{' + orcidUrl(a.orcid) + '}');
+        if (a.thanks) lines.push('\\thanks{' + iv(a.thanks) + '}');
+      }
+      return lines;
+    }
+    // Each distinct institute once, numbered in order of first use.
+    const inst = [];
+    authors.forEach((a) => a.affils.forEach((f) => { if (!inst.includes(f)) inst.push(f); }));
+    const marks = (a) => a.affils.map((f) => inst.indexOf(f) + 1).join(',');
+    const notes = (a) => [a.thanks && iv(a.thanks), a.curraddr && 'Current address: ' + iv(a.curraddr),
+      a.orcid && 'ORCID: ' + a.orcid].filter(Boolean);
+    const thanks = (a, extra) => notes(a).concat(extra || []).map((t) => '\\thanks{' + t + '}').join('');
+    if (cls === 'beamer') {
+      lines.push('\\author{' + authors.map((a) => iv(a.name) + (a.affils.length ? '\\inst{' + marks(a) + '}' : '')).join(' \\and ') + '}');
+      const emails = authors.filter((a) => a.email).map((a) => '\\texttt{' + a.email + '}');
+      if (inst.length || emails.length) {
+        const parts = inst.map((f, k) => (inst.length > 1 ? '\\inst{' + (k + 1) + '} ' : '') + iv(f));
+        lines.push('\\institute{' + parts.join(' \\and ') + (emails.length ? (parts.length ? '\\\\ ' : '') + emails.join(', ') : '') + '}');
+      }
+      return lines;
+    }
+    const shared = authors.some((a) => a.affils.length > 1) ||
+      inst.some((f) => authors.filter((a) => a.affils.includes(f)).length > 1);
+    if (shared) {
+      // Several institutes per author, or one shared by several: authblk's numbered marks.
+      if (!userPkgs.some((l) => /\{authblk\}/.test(l))) lines.push('\\usepackage{authblk}');
+      for (const a of authors) {
+        lines.push('\\author' + (a.affils.length ? '[' + marks(a) + ']' : '') + '{' + iv(a.name) +
+          thanks(a, a.email ? ['\\texttt{' + a.email + '}'] : []) + '}');
+      }
+      inst.forEach((f, k) => lines.push('\\affil[' + (k + 1) + ']{' + iv(f) + '}'));
+      return lines;
+    }
+    lines.push('\\author{' + authors.map((a) => iv(a.name) + thanks(a) +
+      a.affils.map((f) => '\\\\ ' + iv(f)).join('') +
+      (a.email ? '\\\\ \\texttt{' + a.email + '}' : '')).join(' \\and ') + '}');
+    return lines;
   }
 
   function packageLines(list) {
@@ -817,18 +890,7 @@
 
     if (meta.title) lines.push('\\title{' + inlineValue(ctx, meta.title) + '}');
     const authors = authorsOf(meta);
-    if (authors.length) {
-      if (ams) {
-        for (const a of authors) {
-          lines.push('\\author{' + inlineValue(ctx, a.name) + '}');
-          if (a.affiliation) lines.push('\\address{' + inlineValue(ctx, a.affiliation) + '}');
-          if (a.email) lines.push('\\email{' + a.email + '}');
-        }
-      } else {
-        lines.push('\\author{' + authors.map((a) => inlineValue(ctx, a.name) +
-          (a.affiliation ? '\\\\ ' + inlineValue(ctx, a.affiliation) : '')).join(' \\and ') + '}');
-      }
-    }
+    if (authors.length) lines.push(...authorLines(ctx, authors, clsName, ams, all.concat(pk)));
     if (meta.date != null) lines.push('\\date{' + (meta.date === 'today' ? '\\today' : inlineValue(ctx, meta.date)) + '}');
     if (ams && meta.keywords) lines.push('\\keywords{' + [].concat(meta.keywords).map((k) => inlineValue(ctx, k)).join(', ') + '}');
     if (ams && meta.subjclass) lines.push('\\subjclass[2020]{' + [].concat(meta.subjclass).join(', ') + '}');
