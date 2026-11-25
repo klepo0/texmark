@@ -69,12 +69,6 @@
         }
       }
     ],
-    "snippets": [
-      {
-        "language": "texmark",
-        "path": "./snippets/texmark.code-snippets"
-      }
-    ],
     "commands": [
       {
         "command": "texmark.build",
@@ -196,18 +190,151 @@
         "command": "texmark.toggleBold",
         "key": "ctrl+b",
         "mac": "cmd+b",
-        "when": "editorTextFocus && !editorReadonly && editorLangId == texmark"
+        "when": "editorTextFocus && !editorReadonly && editorLangId == texmark && config.texmark.shortcuts.bold"
       },
       {
         "command": "texmark.toggleItalic",
         "key": "ctrl+i",
         "mac": "cmd+i",
-        "when": "editorTextFocus && !editorReadonly && editorLangId == texmark && config.texmark.italicShortcut"
+        "when": "editorTextFocus && !editorReadonly && editorLangId == texmark && config.texmark.shortcuts.italic"
       }
     ],
     "configuration": {
       "title": "TeXmark",
       "properties": {
+        "texmark.autoClose.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Close maths delimiters as you type them: $ gives $ $, a second $ gives $$ $$, \\( gives \\( \\), \\[ gives \\[ \\]. Typing the closer goes over it, and backspace in an empty pair removes both sides."
+        },
+        "texmark.autoClose.pairs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "default": {
+            "$": "$",
+            "$$": "$$",
+            "\\(": "\\)",
+            "\\[": "\\]"
+          },
+          "markdownDescription": "Pairs closed as you type: the opener and what is added after the cursor. Add your own, such as `\"\\\\left(\": \"\\\\right)\"`, or remove one by deleting it. A `$$` pair grows from `$`."
+        },
+        "texmark.completion.labels": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Suggest the file's labels after `@` and in `\\ref{`, `\\cref{`, `\\eqref{`."
+        },
+        "texmark.completion.citations": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Suggest `.bib` keys after `[@` and in `\\cite{`."
+        },
+        "texmark.completion.macros": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Suggest the macros the file defines (and those in `macros:` files) after `\\`."
+        },
+        "texmark.completion.latexCommands": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Suggest common LaTeX commands after `\\` (maths commands first inside maths)."
+        },
+        "texmark.completion.extraCommands": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The command, without or with its backslash."
+                  },
+                  "snippet": {
+                    "type": "string",
+                    "description": "What to insert after the backslash, in snippet syntax, e.g. \"norm{${1}}\"."
+                  },
+                  "detail": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            ]
+          },
+          "markdownDescription": "Your own commands to suggest after `\\`, listed first: `\"Hom\"`, or `{ \"name\": \"norm\", \"snippet\": \"norm{${1}}\", \"detail\": \"norm\" }`."
+        },
+        "texmark.completion.environments": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Suggest environments in `\\begin{` and `\\end{`."
+        },
+        "texmark.completion.environmentEnd": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Add the matching `\\end{…}` when an environment is chosen after `\\begin{` (only when it is not there already)."
+        },
+        "texmark.completion.blocks": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Suggest theorem kinds after `:::`, with a title and label to fill in."
+        },
+        "texmark.completion.frontMatter": {
+          "type": "boolean",
+          "default": true,
+          "description": "Suggest keys (title, author, bib…) in the front matter."
+        },
+        "texmark.completion.snippets": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Offer the built-in snippets (`thm`, `proof`, `eq`, `align`, `fig`…) and your own from `#texmark.completion.customSnippets#`."
+        },
+        "texmark.completion.customSnippets": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "prefix": {
+                    "type": [
+                      "string",
+                      "array"
+                    ]
+                  },
+                  "body": {
+                    "type": [
+                      "string",
+                      "array"
+                    ]
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "prefix",
+                  "body"
+                ]
+              }
+            ]
+          },
+          "markdownDescription": "Your own snippets, in VS Code's snippet format, by name: `{ \"Lemma\": { \"prefix\": \"lem\", \"body\": [\"::: lemma {#lem:${1}}\", \"$0\", \":::\"] } }`. A name used by a built-in snippet replaces it; `null` removes it. Built-in names: Theorem, Lemma, Proposition, Corollary, Definition, Remark, Example, Proof, Numbered equation, Display maths, align, Figure, Front matter…"
+        },
         "texmark.build.tool": {
           "type": "string",
           "enum": [
@@ -269,9 +396,24 @@
         "texmark.lint.references": {
           "type": "boolean",
           "default": true,
-          "description": "Underline @references and \\ref{…} to labels the file does not define, and [@citations] missing from its .bib files."
+          "description": "Underline @references and \\ref{…} to labels the file does not define."
         },
-        "texmark.italicShortcut": {
+        "texmark.lint.citations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Underline [@citations] missing from the file's .bib files."
+        },
+        "texmark.hover.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show labels, citations and macros on hover."
+        },
+        "texmark.shortcuts.bold": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ctrl+B (Cmd+B) toggles **bold** in .tmd files."
+        },
+        "texmark.shortcuts.italic": {
           "type": "boolean",
           "default": true,
           "description": "Ctrl+I (Cmd+I) toggles *italic* in .tmd files. Turn off to keep Ctrl+I for other commands, such as inline chat."

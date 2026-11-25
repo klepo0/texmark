@@ -12,7 +12,7 @@ async function check(name, fn) {
 exports.run = async function () {
   const file = path.join(WS, 'heat.tmd');
   const doc = await vscode.workspace.openTextDocument(file);
-  const ed = await vscode.window.showTextDocument(doc);
+  let ed = await vscode.window.showTextDocument(doc);
   await sleep(1500);
   const text = doc.getText();
   const pos = (needle, extra = 0) => doc.positionAt(text.indexOf(needle) + extra);
@@ -43,6 +43,72 @@ exports.run = async function () {
     const envs = await labels(new vscode.Position(line + 1, 9), '{');
     assert.ok(envs.includes('align'), envs.join(','));
     await ed.edit((e) => e.delete(new vscode.Range(line, 0, line + 2, 0)));
+  });
+  await check('\\begin{ after the \\begin completion: no second environment, no snippets', async () => {
+    const line = doc.lineCount - 1;
+    // What the \begin completion leaves after typing "al" in its placeholder.
+    await ed.edit((e) => e.insert(new vscode.Position(line, 0), '\\begin{al}\n\t\n\\end{al}\n'));
+    const list = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', doc.uri, new vscode.Position(line, 9), '{');
+    const name = (i) => (typeof i.label === 'string' ? i.label : i.label.label);
+    const align = list.items.find((i) => name(i) === 'align' && i.kind === vscode.CompletionItemKind.Module);
+    assert.ok(align, 'align offered');
+    const ins = typeof align.insertText === 'string' ? align.insertText : align.insertText.value;
+    assert.strictEqual(ins, 'align');
+    assert.ok(!list.items.some((i) => i.kind === vscode.CompletionItemKind.Snippet), 'no snippets inside \\begin{');
+    await ed.edit((e) => e.delete(new vscode.Range(line, 0, line + 3, 0)));
+    // A fresh \begin{ with nothing after it still gets its \end.
+    await ed.edit((e) => e.insert(new vscode.Position(line, 0), '\\begin{al\n'));
+    const l2 = await vscode.commands.executeCommand('vscode.executeCompletionItemProvider', doc.uri, new vscode.Position(line, 9), '{');
+    const a2 = l2.items.find((i) => name(i) === 'align' && i.kind === vscode.CompletionItemKind.Module);
+    assert.match(a2.insertText.value, /\\end\{align\}/);
+    await ed.edit((e) => e.delete(new vscode.Range(line, 0, line + 1, 0)));
+  });
+  await check('auto-closing pairs, typing over them, backspace in an empty pair', async () => {
+    const d = await vscode.workspace.openTextDocument({ language: 'texmark', content: '' });
+    const e2 = await vscode.window.showTextDocument(d);
+    await sleep(500);
+    const cases = {
+      '$': '$|$', '$$': '$$|$$', '$x$ y': '$x$ y|', '$$x$$ y': '$$x$$ y|',
+      '\\(': '\\(|\\)', '\\(x\\) y': '\\(x\\) y|', '\\[': '\\[|\\]', '\\[a\\alpha': '\\[a\\alpha|\\]',
+      'a $⌫': 'a |', '$$⌫': '|', '\\(⌫': '|', 'B': '**|**', 'B⌫': '|', 'Bx**y': '**x**y|', 'I⌫': '|', 'Ix*y': '*x*y|',
+      '(a) [b]': '(a) [b]|',
+    };
+    const got = [];
+    for (const [keys, want] of Object.entries(cases)) {
+      await e2.edit((b) => b.delete(new vscode.Range(0, 0, d.lineCount, 0)));
+      await sleep(50);
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i];
+        if (k === '⌫') await vscode.commands.executeCommand('deleteLeft');
+        else if (i === 0 && k === 'B' && keys !== '(a) [b]') await vscode.commands.executeCommand('texmark.toggleBold');
+        else if (i === 0 && k === 'I') await vscode.commands.executeCommand('texmark.toggleItalic');
+        else await vscode.commands.executeCommand('type', { text: k });
+        await sleep(60);
+      }
+      const off = d.offsetAt(e2.selection.active), t = d.getText();
+      const res = t.slice(0, off) + '|' + t.slice(off);
+      if (res !== want) got.push(JSON.stringify(keys) + ' gave ' + JSON.stringify(res) + ', want ' + JSON.stringify(want));
+    }
+    ed = await vscode.window.showTextDocument(doc);
+    assert.deepStrictEqual(got, []);
+  });
+  await check('settings switch features off and add custom ones', async () => {
+    const c = vscode.workspace.getConfiguration('texmark');
+    const T = vscode.ConfigurationTarget.Global;
+    await c.update('completion.citations', false, T);
+    await c.update('completion.extraCommands', [{ name: 'norm', snippet: 'norm{${1}}' }], T);
+    await c.update('completion.customSnippets', { Theorem: null, Mine: { prefix: 'mine', body: 'my snippet' } }, T);
+    try {
+      const cite = await labels(pos('@evans2010', 1), '@');
+      assert.ok(!cite.includes('evans2010'), 'citations off');
+      const cmds = await labels(pos('\\R$', 1), '\\');
+      assert.ok(cmds.includes('\\norm'), 'extra command');
+      const line = doc.lineCount - 1;
+      const sn = await labels(new vscode.Position(line, 0));
+      assert.ok(sn.includes('mine') && !sn.includes('thm'), 'custom snippets: ' + sn.filter((x) => /^(mine|thm)$/.test(x)));
+    } finally {
+      for (const k of ['completion.citations', 'completion.extraCommands', 'completion.customSnippets']) await c.update(k, undefined, T);
+    }
   });
   await check('hover on @thm:main', async () => {
     const hs = await vscode.commands.executeCommand('vscode.executeHoverProvider', doc.uri, pos('@thm:main', 3));
