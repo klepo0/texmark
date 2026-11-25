@@ -1,5 +1,5 @@
 {
-  "name": "@klepo0/texmark",
+  "name": "@texmark/texmark",
   "version": "0.1.0",
   "description": "Markdown that's secretly LaTeX: write papers without a preamble, convert to ordinary .tex",
   "main": "texmark.js",
