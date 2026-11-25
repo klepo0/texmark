@@ -70,6 +70,16 @@ See [SPEC.md](SPEC.md). In short:
 - an optional YAML header for title, authors, abstract, packages and `.bib`
 - anything else is LaTeX, and maths and environments are never touched
 
+## Releases
+
+The VS Code extension and the npm package share one version, the one in
+`vscode/package.json`. Pull requests leave it alone. To release, run
+**Actions > Release > Run workflow** on main and pick `patch`, `minor` or
+`major` (or `current` to release the version as it stands). The workflow
+tests, builds, tags, creates the GitHub release with the `.vsix`, and
+publishes the extension to the VS Code Marketplace (and Open VSX when the
+`OVSX_PAT` secret is set). See [release.yml](.github/workflows/release.yml).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
