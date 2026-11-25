@@ -8,7 +8,13 @@ file into an ordinary `.tex` file that compiles for arXiv or a journal.
 ```markdown
 ---
 title: Heat flow on a toy surface
-author: A. N. Author
+author:
+  - name: A. N. Author
+    affiliation: [University of Leeds, University of Oxford]
+    email: author@example.org
+  - name: B. Coauthor
+    affiliation: University of Leeds
+    orcid: 0000-0002-1825-0097
 ---
 
 \newcommand{\R}{\mathbb{R}}
