@@ -1,0 +1,109 @@
+# Publishes the npm package "texmark" (the converter texmark.js and the
+# texmark CLI, root package.json). It is separate from the VS Code extension's
+# Release workflow (release.yml) and has its own version, the "version" in the
+# root package.json. Pull requests never change it; it moves only here.
+#
+# Actions > npm release > Run workflow, pick patch / minor / major, or
+# "current" to publish the version that is there now (the first release,
+# 0.1.0). The workflow sets the version, runs the tests, pushes an
+# "npm: release texmark X.Y.Z" commit to main (none for "current") and the
+# npm-vX.Y.Z tag (which does not start release.yml), and publishes to npm.
+#
+# Publishing: with an NPM_TOKEN secret (an npm access token) it publishes with
+# that token; without one it uses npm trusted publishing, which needs this
+# repository (klepo0/texmark) and workflow (npm-release.yml) added as a
+# trusted publisher in the package's settings on npmjs.com.
+name: npm release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Which part of the npm version to raise (0.1.0 -> patch 0.1.1, minor 0.2.0, major 1.0.0), or current to publish it as it is
+        type: choice
+        options: [patch, minor, major, current]
+        default: patch
+
+permissions:
+  contents: write
+  id-token: write # npm trusted publishing and provenance (OIDC)
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Only release from main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Run the npm release workflow from main (it ran from $GITHUB_REF_NAME)"
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Set the version
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          if [ "$BUMP" != current ]; then
+            npm version "$BUMP" --no-git-tag-version
+          fi
+          v=$(node -p "require('./package.json').version")
+          name=$(node -p "require('./package.json').name")
+          if npm view "$name@$v" version >/dev/null 2>&1; then
+            echo "::error::$name $v is already on npm; pick patch, minor or major"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet; then
+            git commit -am "npm: release $name $v"
+            echo "COMMIT=1" >> "$GITHUB_ENV"
+          fi
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+          echo "TAG=npm-v$v" >> "$GITHUB_ENV"
+
+      - name: Test
+        run: npm test
+
+      - name: Check the package contents
+        run: npm pack --dry-run
+
+      # Same as release.yml: a deploy key in RELEASE_DEPLOY_KEY pushes the
+      # commit to a protected main; the tag goes with GITHUB_TOKEN.
+      - name: Push the version commit and tag
+        env:
+          DEPLOY_KEY: ${{ secrets.RELEASE_DEPLOY_KEY }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "::notice::Tag $TAG already exists; not pushing it again"
+          else
+            git tag "$TAG"
+            if [ -z "$COMMIT" ]; then
+              git push origin "refs/tags/$TAG"
+            elif [ -n "$DEPLOY_KEY" ]; then
+              mkdir -p ~/.ssh
+              printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/release_key
+              chmod 600 ~/.ssh/release_key
+              ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+              GIT_SSH_COMMAND="ssh -i ~/.ssh/release_key -o IdentitiesOnly=yes" \
+                git push "git@github.com:${GITHUB_REPOSITORY}.git" HEAD:main
+              git push origin "refs/tags/$TAG"
+            else
+              git push --atomic origin HEAD:main "refs/tags/$TAG"
+            fi
+          fi
+
+      # npm 11.5+ is needed for trusted publishing.
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx --yes npm@11.6.2 publish --provenance --access public

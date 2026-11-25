@@ -1,13 +1,13 @@
-# Releases TeXmark: the VS Code extension (vscode/, klepo1.texmark) and the
-# converter and CLI (root package.json, the npm package "texmark") share one
-# version, the "version" in vscode/package.json. Pull requests never change
-# it; it moves only here, once per release.
+# Releases the TeXmark VS Code extension (vscode/, klepo1.texmark). Its
+# version is the "version" in vscode/package.json. Pull requests never change
+# it; it moves only here, once per release. The npm package (the converter and
+# CLI, root package.json) has its own version and workflow: npm-release.yml.
 #
 # Usual way, from GitHub (no local clone needed):
 #   Actions > Release > Run workflow, pick patch / minor / major, or
 #   "current" to release the version that is there now (the first release,
-#   0.1.0). The workflow sets the version in vscode/package.json and
-#   package.json, tests and builds, then pushes a "Release vX.Y.Z" commit to
+#   0.1.0). The workflow sets the version in vscode/package.json, tests and
+#   builds, then pushes a "Release vX.Y.Z" commit to
 #   main (none for "current") and the vX.Y.Z tag, and publishes.
 #
 # Fallback, from a clone: set the version yourself, merge it, then
@@ -32,7 +32,7 @@ on:
 
 permissions:
   contents: write
-  id-token: write # Marketplace and npm trusted publishing (OIDC)
+  id-token: write # Marketplace trusted publishing (OIDC)
 
 concurrency:
   group: release
@@ -67,10 +67,6 @@ jobs:
             (cd vscode && npm version "$BUMP" --no-git-tag-version)
           fi
           v=$(node -p "require('./vscode/package.json').version")
-          # the npm package (root package.json) carries the same version
-          if [ "$(node -p "require('./package.json').version")" != "$v" ]; then
-            npm version "$v" --no-git-tag-version
-          fi
           if git ls-remote --exit-code --tags origin "refs/tags/v$v" >/dev/null; then
             echo "::error::Tag v$v already exists"
             exit 1
@@ -94,8 +90,6 @@ jobs:
             exit 1
           fi
           echo "TAG=$GITHUB_REF_NAME" >> "$GITHUB_ENV"
-          # the npm package is published with the same version (not committed here)
-          npm version "$tag" --no-git-tag-version --allow-same-version
 
       - name: Install
         run: npm ci --prefix vscode
@@ -167,26 +161,3 @@ jobs:
             exit 0
           fi
           npx --yes ovsx@1.3.0 publish --skip-duplicate --packagePath texmark-*.vsix
-
-      # npm: the converter and CLI (root package.json, its "files") as the
-      # package "texmark", with the release's version. Trusted publishing: no
-      # token. npm can only trust a workflow for a package that exists, so the
-      # first version is published by hand from a clone (npm login, then
-      # npm publish --access public); then, on npmjs.com, the package's
-      # Settings > Trusted Publisher names GitHub Actions, klepo0/texmark,
-      # workflow release.yml. Until then this step only notes it.
-      - name: Publish to npm
-        run: |
-          v="${TAG#v}"
-          if ! npm view texmark name >/dev/null 2>&1; then
-            echo "::notice::texmark is not on npm yet; publish its first version by hand (see the comment above this step)"
-            exit 0
-          fi
-          if [ "$(npm view "texmark@$v" version 2>/dev/null)" = "$v" ]; then
-            echo "::notice::texmark $v is already on npm"
-            exit 0
-          fi
-          # trusted publishing needs npm 11.5.1 or later
-          if ! npx --yes npm@11.6.2 publish --provenance --access public; then
-            echo "::warning::Could not publish texmark $v to npm: is release.yml its Trusted Publisher on npmjs.com?"
-          fi
