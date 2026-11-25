@@ -1,4 +1,4 @@
-# Publishes the npm package "texmark" (the converter texmark.js and the
+# Publishes the npm package "@klepo0/texmark" (the converter texmark.js and the
 # texmark CLI, root package.json). It is separate from the VS Code extension's
 # Release workflow (release.yml) and has its own version, the "version" in the
 # root package.json. Pull requests never change it; it moves only here.
