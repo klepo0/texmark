@@ -32,15 +32,17 @@ with all its reading tools.
 
 ## Use it
 
+Installed with `npm install -g @texmark/texmark`, the command is `texmark`.
+
 ```sh
-npx texmark paper.tmd          # writes paper.tex
-npx texmark paper.tmd -o -     # prints it
+npx @texmark/texmark paper.tmd        # writes paper.tex
+npx @texmark/texmark paper.tmd -o -   # prints it
 ```
 
 From JavaScript (Node or the browser, no dependencies):
 
 ```js
-const TeXmark = require('texmark');            // or <script src="texmark.js"> → window.TeXmark
+const TeXmark = require('@texmark/texmark');    // or <script src="texmark.js"> → window.TeXmark
 const { latex, body, preamble, bodyLine } = TeXmark.convert(source);
 ```
 
