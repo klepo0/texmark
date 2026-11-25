@@ -63,7 +63,7 @@ const TEXT = [
   ['DeclareMathOperator', 'DeclareMathOperator{\\\\${1:name}}{${2:text}}', 'operator name (moves to the preamble)'],
   ['newtheorem', 'newtheorem{${1:name}}{${2:Name}}'],
   ['usepackage', 'usepackage{${1}}', 'package (moves to the preamble)'],
-  ['begin', 'begin{${1:env}}\n\t${0}\n\\\\end{${1:env}}', 'environment'],
+  ['begin', 'begin{${1}}', 'environment: pick one next'],
   ['item'], ['noindent'], ['newline'], ['newpage'], ['clearpage'], ['medskip'], ['bigskip'], ['smallskip'],
   ['vspace', 'vspace{${1}}'], ['hspace', 'hspace{${1}}'],
   ['section', 'section{${1}}', 'section (or # Title)'], ['subsection', 'subsection{${1}}', 'subsection (or ## Title)'],
@@ -80,6 +80,38 @@ const ENVIRONMENTS = [
   ['theorem'], ['lemma'], ['proposition'], ['corollary'], ['definition'], ['remark'], ['example'],
 ];
 
+
+/**
+ * What follows \begin{name} when an environment is chosen: `args` right after
+ * the closing brace and `body` inside, in snippet syntax. Tab stops run through
+ * the arguments, then the body. Theorem kinds get [Title] and a label (see
+ * envTemplate). A literal backslash before a letter needs no escaping.
+ */
+const ENV_TEMPLATES = {
+  equation: { body: '${1} \\label{eq:${2:label}}' },
+  align: { body: '${1:a} &= ${2:b} \\label{eq:${3:label}}' },
+  gather: { body: '${1} \\label{eq:${2:label}}' },
+  multline: { body: '${1} \\label{eq:${2:label}}' },
+  'equation*': { body: '${1}' }, 'align*': { body: '${1:a} &= ${2:b}' },
+  'gather*': { body: '${1}' }, 'multline*': { body: '${1}' },
+  split: { body: '${1:a} &= ${2:b}' }, aligned: { body: '${1:a} &= ${2:b}' },
+  cases: { body: '${1:a} & \\text{if } ${2:x > 0}, \\\\\\\\\n${3:b} & \\text{otherwise}.' },
+  pmatrix: { body: '${1:a} & ${2:b} \\\\\\\\\n${3:c} & ${4:d}' },
+  bmatrix: { body: '${1:a} & ${2:b} \\\\\\\\\n${3:c} & ${4:d}' },
+  vmatrix: { body: '${1:a} & ${2:b} \\\\\\\\\n${3:c} & ${4:d}' },
+  matrix: { body: '${1:a} & ${2:b} \\\\\\\\\n${3:c} & ${4:d}' },
+  array: { args: '{${1:cc}}', body: '${2}' },
+  tabular: { args: '{${1:ll}}', body: '${2:a} & ${3:b} \\\\\\\\' },
+  minipage: { args: '{${1:0.45}\\linewidth}', body: '${2}' },
+  itemize: { body: '\\item ${1}' },
+  enumerate: { body: '\\item ${1}' },
+  description: { body: '\\item[${1:term}] ${2}' },
+  figure: { args: '[${1:htbp}]', body: '\\centering\n\\includegraphics[width=${2:0.6}\\linewidth]{${3:file}}\n\\caption{${4:Caption}}\\label{fig:${5:label}}' },
+  table: { args: '[${1:htbp}]', body: '\\centering\n\\begin{tabular}{${2:ll}}\n\t${3:a} & ${4:b} \\\\\\\\\n\\end{tabular}\n\\caption{${5:Caption}}\\label{tab:${6:label}}' },
+  tikzpicture: { body: '${1:\\draw (0,0) -- (1,1);}' },
+  tikzcd: { body: '${1:A} \\arrow[r, "${2:f}"] & ${3:B}' },
+  proof: { body: '${1}' },
+};
 
 /** Front-matter keys (SPEC §3). */
 const FRONT_MATTER = [
@@ -98,4 +130,4 @@ const FRONT_MATTER = [
   ['numbering', 'numbering: ${1|section,chapter,global|}', 'Theorem numbering (default within section)'],
 ];
 
-module.exports = { MATH, TEXT, ENVIRONMENTS, FRONT_MATTER };
+module.exports = { MATH, TEXT, ENVIRONMENTS, ENV_TEMPLATES, FRONT_MATTER };

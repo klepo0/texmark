@@ -130,6 +130,8 @@ const completion = {
           it.range = range;
           it.insertText = new vscode.SnippetString('\\\\' + (body || name.replace(/[$}\\]/g, '\\$&')));
           if (detail) it.detail = detail;
+          // \begin opens the environment list, which fills in arguments, body and \end.
+          if (name === 'begin') it.command = { command: 'editor.action.triggerSuggest', title: 'Environments' };
           it.sortText = rank + name;
           items.push(it);
         }
@@ -156,6 +158,8 @@ const completion = {
       const next = /\\(begin|end)\s*\{([^}]*)\}/.exec(ahead.slice(rest.length + (hasClose ? 1 : 0)));
       const endThere = !!next && next[1] === 'end' && next[2] === word;
       const addEnd = isBegin && on('environmentEnd') && !endThere && !/\\end\s*\{/.test(after);
+      const theoremKinds = new Set(Object.keys(scan.KIND_NAMES).filter((k) => k !== 'proof')
+        .concat(scan.environments(text).filter((e) => e.theorem).map((e) => e.name)));
       const envs = LATEX.ENVIRONMENTS.concat(scan.environments(text).map((e) => [e.name, e.printed || 'declared in this file']));
       const seen = new Set();
       for (const [name, detail] of envs) {
@@ -166,7 +170,7 @@ const completion = {
         if (addEnd) {
           const indent = /^\s*/.exec(doc.lineAt(position.line).text)[0];
           it.range = new vscode.Range(position.line, ctx.start, position.line, position.character + rest.length + (hasClose ? 1 : 0));
-          it.insertText = new vscode.SnippetString(name + '}\n' + indent + '\t$0\n' + indent + '\\\\end{' + name + '}');
+          it.insertText = new vscode.SnippetString(envSnippet(name, indent, theoremKinds));
         } else {
           // Only the name, inside the braces, so a snippet's mirrored \end{…} follows it.
           it.range = new vscode.Range(position.line, ctx.start, position.line, position.character + rest.length);
@@ -183,7 +187,7 @@ const completion = {
         const it = new vscode.CompletionItem(k, vscode.CompletionItemKind.Struct);
         it.range = range;
         it.detail = scan.kindName(k);
-        const prefix = (scan.ALIASES && Object.keys(scan.ALIASES).find((a) => scan.ALIASES[a] === k)) || k.slice(0, 3);
+        const prefix = scan.labelPrefix(k);
         // Tab stops: the title, then the label, then the body. Delete [Title] or {#…} when not wanted.
         it.insertText = k === 'proof'
           ? new vscode.SnippetString(space + 'proof\n$0\n:::')
@@ -210,6 +214,24 @@ const completion = {
 // they stay out of \begin{…}, \commands and @labels: "align" after \begin{
 // is the environment name, not a second \begin{align}.
 const SNIPPETS = require('./snippets/texmark.json');
+
+/**
+ * The snippet after "\\begin{" for environment `name`: its arguments, the body
+ * with tab stops, and the \\end. Theorem kinds get [Title] and a label.
+ */
+function envSnippet(name, indent, theoremKinds) {
+  let t = LATEX.ENV_TEMPLATES[name];
+  if (!t && theoremKinds.has(name.replace(/\*$/, ''))) {
+    t = /\*$/.test(name)
+      ? { args: '[${1:Title}]', body: '${2}' }
+      : { args: '[${1:Title}]\\label{' + scan.labelPrefix(name) + ':${2:label}}', body: '${3}' };
+  }
+  t = t || { body: '' };
+  const inner = indent + '\t';
+  const body = (t.body || '').split('\n').map((l) => (l.startsWith('\t') ? inner + l : inner + l)).join('\n');
+  const close = indent + '\\end{' + name.replace(/[$}\\]/g, '\\$&') + '}';
+  return name.replace(/[$}\\]/g, '\\$&') + '}' + (t.args || '') + '\n' + body + (t.body ? '' : '$0') + '\n' + close + (t.body ? '$0' : '');
+}
 
 function snippetItems(before, position) {
   const word = /[A-Za-z*]*$/.exec(before)[0];
