@@ -1,0 +1,6 @@
+node_modules/
+lib/texmark.js
+*.vsix
+.texmark/
+test/.cache/
+.vscode-test/

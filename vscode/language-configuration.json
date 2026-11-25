@@ -1,0 +1,34 @@
+{
+  "comments": {
+    "lineComment": "%"
+  },
+  "brackets": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"]
+  ],
+  "autoClosingPairs": [
+    { "open": "{", "close": "}" },
+    { "open": "[", "close": "]" },
+    { "open": "(", "close": ")" },
+    { "open": "`", "close": "`", "notIn": ["comment"] }
+  ],
+  "autoCloseBefore": ";:.,=}])>` \n\t$",
+  "surroundingPairs": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+    ["$", "$"],
+    ["*", "*"],
+    ["_", "_"],
+    ["`", "`"],
+    ["\"", "\""]
+  ],
+  "wordPattern": "(-?\\d*\\.\\d\\w*)|([^`~!@#$%^&*()\\-=+\\[{\\]}\\\\|;:'\",.<>/?\\s]+)",
+  "onEnterRules": [
+    { "beforeText": "^\\s*- \\S.*$", "action": { "indent": "none", "appendText": "- " } },
+    { "beforeText": "^\\s*\\* \\S.*$", "action": { "indent": "none", "appendText": "* " } },
+    { "beforeText": "^\\s*\\+ \\S.*$", "action": { "indent": "none", "appendText": "+ " } },
+    { "beforeText": "^\\s*> \\S.*$", "action": { "indent": "none", "appendText": "> " } }
+  ]
+}

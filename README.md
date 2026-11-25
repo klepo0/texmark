@@ -50,6 +50,14 @@ line 1 sits in `latex`, so error messages map straight back.
 source, and `convert(source, { compact: true })` puts the whole preamble on
 line 1 so that every line keeps its number.
 
+## VS Code
+
+The [TeXmark extension](vscode/README.md) (`klepo1.texmark`) gives `.tmd`
+files syntax highlighting, snippets (`thm`, `proof`, `eq`, `align`, `fig`…),
+completion for `@labels`, `[@citations]` from your `.bib` and your own
+macros, an outline, Convert to .tex and Build PDF with your own LaTeX. Its
+live preview comes from TeXglass.
+
 ## The format
 
 See [SPEC.md](SPEC.md). In short:

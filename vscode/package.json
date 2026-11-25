@@ -1,0 +1,298 @@
+{
+  "name": "texmark",
+  "displayName": "TeXmark",
+  "description": "Language support for TeXmark (.tmd), Markdown that's secretly LaTeX: syntax highlighting, snippets, completion for labels, citations and macros, outline, Convert to .tex and Build PDF.",
+  "version": "0.1.0",
+  "publisher": "klepo1",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#1d3478",
+    "theme": "dark"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/klepo0/texmark",
+    "directory": "vscode"
+  },
+  "homepage": "https://github.com/klepo0/texmark/tree/main/vscode#readme",
+  "bugs": {
+    "url": "https://github.com/klepo0/texmark/issues"
+  },
+  "sponsor": {
+    "url": "https://buymeacoffee.com/texglass"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "texmark",
+    "tmd",
+    "latex",
+    "markdown",
+    "tex",
+    "math",
+    "mathematics",
+    "theorem",
+    "bibtex",
+    "latexmk"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:texmark"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "texmark",
+        "aliases": [
+          "TeXmark",
+          "texmark"
+        ],
+        "extensions": [
+          ".tmd"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "texmark",
+        "scopeName": "text.tex.texmark",
+        "path": "./syntaxes/texmark.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.frontmatter": "yaml"
+        }
+      }
+    ],
+    "snippets": [
+      {
+        "language": "texmark",
+        "path": "./snippets/texmark.code-snippets"
+      }
+    ],
+    "commands": [
+      {
+        "command": "texmark.build",
+        "title": "Build PDF",
+        "category": "TeXmark",
+        "icon": "$(play)"
+      },
+      {
+        "command": "texmark.viewPdf",
+        "title": "View PDF",
+        "category": "TeXmark",
+        "icon": "$(file-pdf)"
+      },
+      {
+        "command": "texmark.preview",
+        "title": "Open Preview to the Side",
+        "category": "TeXmark",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "texmark.convertToTex",
+        "title": "Convert to .tex",
+        "category": "TeXmark"
+      },
+      {
+        "command": "texmark.toggleBold",
+        "title": "Toggle Bold",
+        "category": "TeXmark"
+      },
+      {
+        "command": "texmark.toggleItalic",
+        "title": "Toggle Italic",
+        "category": "TeXmark"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "texmark.build",
+          "when": "editorLangId == texmark",
+          "group": "navigation@1"
+        },
+        {
+          "command": "texmark.preview",
+          "when": "editorLangId == texmark && !texmark.texglassInstalled",
+          "group": "navigation@2"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "texmark.build",
+          "when": "editorLangId == texmark",
+          "group": "texmark@1"
+        },
+        {
+          "command": "texmark.viewPdf",
+          "when": "editorLangId == texmark",
+          "group": "texmark@2"
+        },
+        {
+          "command": "texmark.convertToTex",
+          "when": "editorLangId == texmark",
+          "group": "texmark@3"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "texmark.convertToTex",
+          "when": "resourceExtname == .tmd",
+          "group": "texmark@1"
+        },
+        {
+          "command": "texmark.build",
+          "when": "resourceExtname == .tmd",
+          "group": "texmark@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "texmark.build",
+          "when": "editorLangId == texmark"
+        },
+        {
+          "command": "texmark.viewPdf",
+          "when": "editorLangId == texmark"
+        },
+        {
+          "command": "texmark.preview",
+          "when": "editorLangId == texmark"
+        },
+        {
+          "command": "texmark.convertToTex",
+          "when": "editorLangId == texmark"
+        },
+        {
+          "command": "texmark.toggleBold",
+          "when": "editorLangId == texmark"
+        },
+        {
+          "command": "texmark.toggleItalic",
+          "when": "editorLangId == texmark"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "texmark.build",
+        "key": "ctrl+alt+b",
+        "mac": "cmd+alt+b",
+        "when": "editorTextFocus && editorLangId == texmark"
+      },
+      {
+        "command": "texmark.viewPdf",
+        "key": "ctrl+alt+v",
+        "mac": "cmd+alt+v",
+        "when": "editorTextFocus && editorLangId == texmark"
+      },
+      {
+        "command": "texmark.toggleBold",
+        "key": "ctrl+b",
+        "mac": "cmd+b",
+        "when": "editorTextFocus && !editorReadonly && editorLangId == texmark"
+      },
+      {
+        "command": "texmark.toggleItalic",
+        "key": "ctrl+i",
+        "mac": "cmd+i",
+        "when": "editorTextFocus && !editorReadonly && editorLangId == texmark && config.texmark.italicShortcut"
+      }
+    ],
+    "configuration": {
+      "title": "TeXmark",
+      "properties": {
+        "texmark.build.tool": {
+          "type": "string",
+          "enum": [
+            "latexmk",
+            "engine"
+          ],
+          "enumDescriptions": [
+            "Run latexmk, which reruns LaTeX and BibTeX as often as needed.",
+            "Run the engine, BibTeX when the file has a bibliography, then the engine twice. For TeX installations without latexmk (it needs Perl)."
+          ],
+          "default": "latexmk",
+          "description": "How Build PDF runs LaTeX."
+        },
+        "texmark.build.engine": {
+          "type": "string",
+          "enum": [
+            "pdflatex",
+            "xelatex",
+            "lualatex"
+          ],
+          "default": "pdflatex",
+          "description": "The TeX engine Build PDF uses."
+        },
+        "texmark.build.outDir": {
+          "type": "string",
+          "default": ".texmark",
+          "description": "Folder, relative to the .tmd file, for the generated .tex file and LaTeX's auxiliary files."
+        },
+        "texmark.build.copyPdfNextToSource": {
+          "type": "boolean",
+          "default": true,
+          "description": "Put the finished PDF next to the .tmd file (paper.tmd gives paper.pdf). Off: it stays in the build folder."
+        },
+        "texmark.build.onSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Build the PDF every time a .tmd file is saved."
+        },
+        "texmark.build.openPdf": {
+          "type": "boolean",
+          "default": false,
+          "description": "Open the PDF after Build PDF succeeds."
+        },
+        "texmark.pdf.viewer": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "tab",
+            "external"
+          ],
+          "enumDescriptions": [
+            "In a VS Code tab when a PDF viewer extension (such as LaTeX Workshop) is installed, otherwise in the system's PDF viewer.",
+            "Always in a VS Code tab (needs a PDF viewer extension).",
+            "Always in the system's PDF viewer."
+          ],
+          "default": "auto",
+          "description": "Where View PDF opens the PDF."
+        },
+        "texmark.lint.references": {
+          "type": "boolean",
+          "default": true,
+          "description": "Underline @references and \\ref{…} to labels the file does not define, and [@citations] missing from its .bib files."
+        },
+        "texmark.italicShortcut": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ctrl+I (Cmd+I) toggles *italic* in .tmd files. Turn off to keep Ctrl+I for other commands, such as inline chat."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "copy-converter": "node scripts/copy-converter.js",
+    "build-grammar": "node scripts/build-grammar.js",
+    "vscode:prepublish": "node scripts/copy-converter.js",
+    "pretest": "node scripts/copy-converter.js",
+    "test": "node --test test/*.test.js",
+    "package": "vsce package",
+    "package:dev": "node scripts/package-dev.js",
+    "test:vscode": "node scripts/copy-converter.js && node test/integration/run.js"
+  },
+  "devDependencies": {
+    "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.0.0",
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.0.0"
+  }
+}

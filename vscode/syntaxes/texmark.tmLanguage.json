@@ -1,0 +1,599 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "TeXmark",
+  "scopeName": "text.tex.texmark",
+  "fileTypes": [
+    "tmd"
+  ],
+  "patterns": [
+    {
+      "include": "#front-matter"
+    },
+    {
+      "include": "#block"
+    }
+  ],
+  "repository": {
+    "front-matter": {
+      "begin": "\\A(---)\\s*$",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.frontmatter.begin.texmark"
+        }
+      },
+      "end": "^(---|\\.\\.\\.)\\s*$",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.frontmatter.end.texmark"
+        }
+      },
+      "name": "meta.frontmatter.texmark",
+      "contentName": "meta.embedded.block.frontmatter source.yaml",
+      "patterns": [
+        {
+          "include": "source.yaml"
+        }
+      ]
+    },
+    "block": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#fenced-code"
+        },
+        {
+          "include": "#heading"
+        },
+        {
+          "include": "#theorem-fence"
+        },
+        {
+          "include": "#rule"
+        },
+        {
+          "include": "#figure"
+        },
+        {
+          "include": "#list-marker"
+        },
+        {
+          "include": "#quote-marker"
+        },
+        {
+          "include": "#display-math"
+        },
+        {
+          "include": "#inline"
+        }
+      ]
+    },
+    "comment": {
+      "match": "(?<![\\\\0-9])(%).*$",
+      "name": "comment.line.percentage.texmark",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.comment.texmark"
+        }
+      }
+    },
+    "fenced-code": {
+      "begin": "^\\s*(\\x60{3,}|~{3,})\\s*([\\w+#.-]*).*$",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.markdown"
+        },
+        "2": {
+          "name": "fenced_code.block.language.markdown"
+        }
+      },
+      "end": "^\\s*\\1\\s*$",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.markdown"
+        }
+      },
+      "name": "markup.fenced_code.block.markdown",
+      "contentName": "markup.raw.block.markdown"
+    },
+    "heading": {
+      "begin": "^(#{1,5})(?=\\s)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.heading.markdown"
+        }
+      },
+      "end": "$",
+      "name": "markup.heading.markdown",
+      "contentName": "entity.name.section.markdown",
+      "patterns": [
+        {
+          "include": "#attributes"
+        },
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#inline"
+        }
+      ]
+    },
+    "theorem-fence": {
+      "begin": "^\\s*(:{3,})\\s*(?:([A-Za-z][\\w-]*\\*?)(?=[\\s\\[{]|$))?\\s*",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.block.texmark keyword.control.block.texmark"
+        },
+        "2": {
+          "name": "entity.name.type.environment.texmark storage.type.theorem.texmark"
+        }
+      },
+      "end": "$",
+      "name": "meta.block.theorem.texmark",
+      "patterns": [
+        {
+          "begin": "\\[",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.title.begin.texmark"
+            }
+          },
+          "end": "\\]",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.title.end.texmark"
+            }
+          },
+          "contentName": "entity.name.section.theorem-title.texmark markup.bold.texmark",
+          "patterns": [
+            {
+              "include": "#inline"
+            }
+          ]
+        },
+        {
+          "include": "#attributes"
+        },
+        {
+          "include": "#comment"
+        }
+      ]
+    },
+    "rule": {
+      "match": "^\\s*(?:-{3,}|\\*{3,}|_{3,})\\s*$",
+      "name": "meta.separator.markdown"
+    },
+    "figure": {
+      "begin": "(!)(\\[)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.link.description.begin.markdown"
+        },
+        "2": {
+          "name": "punctuation.definition.link.description.begin.markdown"
+        }
+      },
+      "end": "(\\])(\\()([^)\\s]*)(\\))(\\{(?:[#.-][^{}\\n]*|[\\w-]+=[^{}\\n]*)\\})?",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.link.description.end.markdown"
+        },
+        "2": {
+          "name": "punctuation.definition.metadata.markdown"
+        },
+        "3": {
+          "name": "markup.underline.link.image.markdown"
+        },
+        "4": {
+          "name": "punctuation.definition.metadata.markdown"
+        },
+        "5": {
+          "patterns": [
+            {
+              "include": "#attributes"
+            }
+          ]
+        }
+      },
+      "name": "meta.image.inline.markdown",
+      "contentName": "string.other.link.description.markdown",
+      "patterns": [
+        {
+          "include": "#inline"
+        }
+      ]
+    },
+    "list-marker": {
+      "match": "^\\s*([-*+]|\\d{1,9}[.)])(?=\\s)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.list.begin.markdown"
+        }
+      }
+    },
+    "quote-marker": {
+      "match": "^\\s*(>)(?=\\s|$)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.quote.begin.markdown markup.quote.markdown"
+        }
+      }
+    },
+    "display-math": {
+      "begin": "\\$\\$",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.tex"
+        }
+      },
+      "end": "(\\$\\$)(\\s*\\{(?:[#.-][^{}\\n]*|[\\w-]+=[^{}\\n]*)\\})?",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.string.end.tex"
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#attributes"
+            }
+          ]
+        }
+      },
+      "name": "meta.math.block.texmark support.class.math.block.environment.latex",
+      "patterns": [
+        {
+          "match": "\\\\\\$",
+          "name": "constant.character.escape.tex"
+        },
+        {
+          "include": "text.tex#math-content"
+        },
+        {
+          "include": "text.tex.latex"
+        }
+      ]
+    },
+    "inline-math": {
+      "patterns": [
+        {
+          "begin": "(?<![\\\\$])\\$(?![\\s$])(?=(?:[^$\\\\]|\\\\.)*(?<![\\s\\\\])\\$(?!\\d))",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.begin.tex"
+            }
+          },
+          "end": "\\$",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.string.end.tex"
+            }
+          },
+          "name": "meta.math.block.tex support.class.math.block.tex",
+          "patterns": [
+            {
+              "match": "\\\\\\$",
+              "name": "constant.character.escape.tex"
+            },
+            {
+              "include": "text.tex#math-content"
+            },
+            {
+              "include": "text.tex.latex"
+            }
+          ]
+        },
+        {
+          "match": "\\$(?=\\d|\\s)"
+        }
+      ]
+    },
+    "attributes": {
+      "match": "(\\{)(?:(#)([\\w][\\w:.\\-/]*[\\w]|[\\w])|([.-][^{}\\n]*)|([\\w-]+=[^{}\\n]*))([^{}\\n]*)(\\})",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.attributes.begin.texmark"
+        },
+        "2": {
+          "name": "punctuation.definition.label.texmark"
+        },
+        "3": {
+          "name": "variable.parameter.definition.label.latex"
+        },
+        "4": {
+          "name": "entity.other.attribute-name.texmark"
+        },
+        "5": {
+          "name": "entity.other.attribute-name.texmark"
+        },
+        "6": {
+          "name": "entity.other.attribute-name.texmark"
+        },
+        "7": {
+          "name": "punctuation.definition.attributes.end.texmark"
+        }
+      }
+    },
+    "inline": {
+      "patterns": [
+        {
+          "include": "#escape"
+        },
+        {
+          "include": "#inline-math"
+        },
+        {
+          "include": "#code-span"
+        },
+        {
+          "include": "#bold"
+        },
+        {
+          "include": "#italic"
+        },
+        {
+          "include": "#footnote"
+        },
+        {
+          "include": "#citation"
+        },
+        {
+          "include": "#figure"
+        },
+        {
+          "include": "#link"
+        },
+        {
+          "include": "#autolink"
+        },
+        {
+          "include": "#reference"
+        },
+        {
+          "include": "#attributes"
+        },
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#prose-env"
+        },
+        {
+          "match": "(?<=[0-9])%"
+        },
+        {
+          "include": "text.tex.latex"
+        }
+      ]
+    },
+    "escape": {
+      "match": "\\\\[*_$%&#@\\x60]",
+      "name": "constant.character.escape.texmark"
+    },
+    "code-span": {
+      "match": "(\\x60+)(.+?)(?<!\\x60)(\\1)(?!\\x60)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.raw.markdown"
+        },
+        "2": {
+          "name": "markup.inline.raw.string.markdown"
+        },
+        "3": {
+          "name": "punctuation.definition.raw.markdown"
+        }
+      },
+      "name": "markup.inline.raw.markdown"
+    },
+    "bold": {
+      "begin": "(?<![\\w\\\\*_])(\\*\\*|__)(?=[^\\s*_])(?=.*?(?<=\\S)\\1)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.bold.markdown"
+        }
+      },
+      "end": "(?<=\\S)(\\1)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.bold.markdown"
+        }
+      },
+      "name": "markup.bold.markdown",
+      "patterns": [
+        {
+          "include": "#inline"
+        }
+      ]
+    },
+    "italic": {
+      "patterns": [
+        {
+          "begin": "(?<![\\w\\\\*])(\\*)(?=[^\\s*])(?=(?:[^*\\\\]|\\\\.)*?(?<=\\S)\\*(?!\\*))",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.italic.markdown"
+            }
+          },
+          "end": "(?<=\\S)(\\*)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.italic.markdown"
+            }
+          },
+          "name": "markup.italic.markdown",
+          "patterns": [
+            {
+              "include": "#inline"
+            }
+          ]
+        },
+        {
+          "begin": "(?<![\\w\\\\_])(_)(?=[^\\s_])(?=(?:[^_\\\\]|\\\\.)*?(?<=\\S)_(?!\\w))",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.italic.markdown"
+            }
+          },
+          "end": "(?<=\\S)(_)(?!\\w)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.italic.markdown"
+            }
+          },
+          "name": "markup.italic.markdown",
+          "patterns": [
+            {
+              "include": "#inline"
+            }
+          ]
+        }
+      ]
+    },
+    "footnote": {
+      "begin": "(\\^)(\\[)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.footnote.texmark"
+        },
+        "2": {
+          "name": "punctuation.definition.footnote.begin.texmark"
+        }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.footnote.end.texmark"
+        }
+      },
+      "name": "meta.footnote.texmark",
+      "contentName": "markup.other.footnote.texmark",
+      "patterns": [
+        {
+          "include": "#inline"
+        }
+      ]
+    },
+    "citation": {
+      "begin": "\\[(?=[^\\]\\n]*(?<![\\w\\\\])@[\\w])",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.citation.begin.texmark"
+        }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.citation.end.texmark"
+        }
+      },
+      "name": "meta.citation.texmark",
+      "patterns": [
+        {
+          "match": "(@)([\\w][\\w:.\\-/]*[\\w]|[\\w])",
+          "captures": {
+            "1": {
+              "name": "punctuation.definition.citation.texmark"
+            },
+            "2": {
+              "name": "entity.name.type.citation.texmark constant.other.reference.citation.latex"
+            }
+          }
+        },
+        {
+          "match": ";",
+          "name": "punctuation.separator.citation.texmark"
+        },
+        {
+          "include": "#inline-math"
+        }
+      ]
+    },
+    "link": {
+      "begin": "\\[(?=[^\\]\\n]*\\]\\()",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.link.title.begin.markdown"
+        }
+      },
+      "end": "(\\])(\\()(?:(#)([\\w][\\w:.\\-/]*[\\w]|[\\w])|([^)\\s]*))(\\))",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.definition.link.title.end.markdown"
+        },
+        "2": {
+          "name": "punctuation.definition.metadata.markdown"
+        },
+        "3": {
+          "name": "punctuation.definition.label.texmark"
+        },
+        "4": {
+          "name": "variable.other.reference.texmark constant.other.reference.label.latex"
+        },
+        "5": {
+          "name": "markup.underline.link.markdown"
+        },
+        "6": {
+          "name": "punctuation.definition.metadata.markdown"
+        }
+      },
+      "name": "meta.link.inline.markdown",
+      "contentName": "string.other.link.title.markdown",
+      "patterns": [
+        {
+          "include": "#inline"
+        }
+      ]
+    },
+    "autolink": {
+      "match": "(<)((?:https?|ftp|mailto):[^>\\s]+)(>)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.link.markdown"
+        },
+        "2": {
+          "name": "markup.underline.link.markdown"
+        },
+        "3": {
+          "name": "punctuation.definition.link.markdown"
+        }
+      },
+      "name": "meta.link.inet.markdown"
+    },
+    "reference": {
+      "match": "(?<![\\w\\\\@])(@)([\\w][\\w:.\\-/]*[\\w]|[\\w])",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.reference.texmark"
+        },
+        "2": {
+          "name": "variable.other.reference.texmark constant.other.reference.label.latex"
+        }
+      },
+      "name": "meta.reference.texmark"
+    },
+    "prose-env": {
+      "match": "(\\\\)(begin|end)(\\{)(document|abstract|center|flushleft|flushright|quote|quotation|verse|itemize|enumerate|description|figure|table|minipage|proof|wrapfigure|subfigure|multicols|frame|block|alertblock|exampleblock|theorem|lemma|proposition|corollary|conjecture|claim|hypothesis|definition|assumption|example|exercise|problem|question|notation|remark|note|tiny|scriptsize|footnotesize|small|normalsize|large|Large|LARGE|huge|Huge)(\\*?)(\\})",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.function.latex"
+        },
+        "2": {
+          "name": "support.function.be.latex"
+        },
+        "3": {
+          "name": "punctuation.definition.arguments.begin.latex"
+        },
+        "4": {
+          "name": "variable.parameter.function.latex"
+        },
+        "5": {
+          "name": "variable.parameter.function.latex"
+        },
+        "6": {
+          "name": "punctuation.definition.arguments.end.latex"
+        }
+      },
+      "name": "meta.function.environment.prose.texmark"
+    }
+  }
+}

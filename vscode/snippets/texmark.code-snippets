@@ -1,0 +1,427 @@
+{
+  "Theorem": {
+    "prefix": [
+      "thm"
+    ],
+    "body": [
+      "::: theorem [${1:Title}] {#thm:${2:label}}",
+      "$0",
+      ":::"
+    ],
+    "description": "Theorem block, numbered, with a title and a label (delete what you do not need)"
+  },
+  "Lemma": {
+    "prefix": [
+      "lem"
+    ],
+    "body": [
+      "::: lemma [${1:Title}] {#lem:${2:label}}",
+      "$0",
+      ":::"
+    ],
+    "description": "Lemma block, numbered, with a title and a label (delete what you do not need)"
+  },
+  "Proposition": {
+    "prefix": [
+      "prop"
+    ],
+    "body": [
+      "::: proposition [${1:Title}] {#prop:${2:label}}",
+      "$0",
+      ":::"
+    ],
+    "description": "Proposition block, numbered, with a title and a label (delete what you do not need)"
+  },
+  "Corollary": {
+    "prefix": [
+      "cor"
+    ],
+    "body": [
+      "::: corollary [${1:Title}] {#cor:${2:label}}",
+      "$0",
+      ":::"
+    ],
+    "description": "Corollary block, numbered, with a title and a label (delete what you do not need)"
+  },
+  "Conjecture": {
+    "prefix": [
+      "conj"
+    ],
+    "body": [
+      "::: conjecture [${1:Title}] {#conj:${2:label}}",
+      "$0",
+      ":::"
+    ],
+    "description": "Conjecture block, numbered, with a title and a label (delete what you do not need)"
+  },
+  "Definition": {
+    "prefix": [
+      "def"
+    ],
+    "body": [
+      "::: definition [${1:Title}] {#def:${2:label}}",
+      "$0",
+      ":::"
+    ],
+    "description": "Definition block, numbered, with a title and a label (delete what you do not need)"
+  },
+  "Remark": {
+    "prefix": [
+      "rem"
+    ],
+    "body": [
+      "::: remark [${1:Title}] {#rem:${2:label}}",
+      "$0",
+      ":::"
+    ],
+    "description": "Remark block, numbered, with a title and a label (delete what you do not need)"
+  },
+  "Example": {
+    "prefix": [
+      "ex"
+    ],
+    "body": [
+      "::: example [${1:Title}] {#ex:${2:label}}",
+      "$0",
+      ":::"
+    ],
+    "description": "Example block, numbered, with a title and a label (delete what you do not need)"
+  },
+  "Assumption": {
+    "prefix": [
+      "assum"
+    ],
+    "body": [
+      "::: assumption [${1:Title}] {#assum:${2:label}}",
+      "$0",
+      ":::"
+    ],
+    "description": "Assumption block, numbered, with a title and a label (delete what you do not need)"
+  },
+  "Claim": {
+    "prefix": [
+      "claim"
+    ],
+    "body": [
+      "::: claim [${1:Title}] {#claim:${2:label}}",
+      "$0",
+      ":::"
+    ],
+    "description": "Claim block, numbered, with a title and a label (delete what you do not need)"
+  },
+  "Notation": {
+    "prefix": [
+      "nota"
+    ],
+    "body": [
+      "::: notation [${1:Title}] {#nota:${2:label}}",
+      "$0",
+      ":::"
+    ],
+    "description": "Notation block, numbered, with a title and a label (delete what you do not need)"
+  },
+  "Exercise": {
+    "prefix": [
+      "exer"
+    ],
+    "body": [
+      "::: exercise [${1:Title}] {#exer:${2:label}}",
+      "$0",
+      ":::"
+    ],
+    "description": "Exercise block, numbered, with a title and a label (delete what you do not need)"
+  },
+  "Question": {
+    "prefix": [
+      "ques"
+    ],
+    "body": [
+      "::: question [${1:Title}] {#ques:${2:label}}",
+      "$0",
+      ":::"
+    ],
+    "description": "Question block, numbered, with a title and a label (delete what you do not need)"
+  },
+  "Proof": {
+    "prefix": [
+      "proof"
+    ],
+    "body": [
+      "::: proof",
+      "$0",
+      ":::"
+    ],
+    "description": "Proof block"
+  },
+  "Proof of": {
+    "prefix": [
+      "proofof"
+    ],
+    "body": [
+      "::: proof [Proof of @${1:thm:label}]",
+      "$0",
+      ":::"
+    ],
+    "description": "Proof with its own title"
+  },
+  "Front matter": {
+    "prefix": [
+      "front"
+    ],
+    "body": [
+      "---",
+      "title: ${1:Title}",
+      "author: ${2:Author}",
+      "${3:abstract: |",
+      "  ${4:Abstract.}}",
+      "${5:bib: ${6:refs.bib}}",
+      "---",
+      "",
+      "$0"
+    ],
+    "description": "YAML header: title, author, abstract, .bib"
+  },
+  "Section": {
+    "prefix": [
+      "sec"
+    ],
+    "body": [
+      "# ${1:Title} {#sec:${2:label}}",
+      "",
+      "$0"
+    ],
+    "description": "Section with a label"
+  },
+  "Subsection": {
+    "prefix": [
+      "sub"
+    ],
+    "body": [
+      "## ${1:Title} {#sec:${2:label}}",
+      "",
+      "$0"
+    ],
+    "description": "Subsection with a label"
+  },
+  "Inline maths": {
+    "prefix": [
+      "mk",
+      "im"
+    ],
+    "body": [
+      "$${1}$$0"
+    ],
+    "description": "$…$"
+  },
+  "Display maths": {
+    "prefix": [
+      "dm"
+    ],
+    "body": [
+      "$$",
+      "  ${1}",
+      "$$$0"
+    ],
+    "description": "Unnumbered display $$…$$"
+  },
+  "Numbered equation": {
+    "prefix": [
+      "eq",
+      "equation"
+    ],
+    "body": [
+      "$$",
+      "  ${1}",
+      "$$ {#eq:${2:label}}$0"
+    ],
+    "description": "Numbered equation with a label, as $$…$$ {#eq:x}"
+  },
+  "align": {
+    "prefix": [
+      "align",
+      "ali"
+    ],
+    "body": [
+      "\\begin{align}",
+      "  ${1:a} &= ${2:b} \\label{eq:${3:label}} \\\\\\\\",
+      "  ${4:c} &= ${5:d}",
+      "\\end{align}$0"
+    ],
+    "description": "Numbered equations aligned at &"
+  },
+  "align*": {
+    "prefix": [
+      "align*",
+      "ali*"
+    ],
+    "body": [
+      "\\begin{align*}",
+      "  ${1:a} &= ${2:b} \\\\\\\\",
+      "  ${3:c} &= ${4:d}",
+      "\\end{align*}$0"
+    ],
+    "description": "Unnumbered equations aligned at &"
+  },
+  "gather": {
+    "prefix": [
+      "gather"
+    ],
+    "body": [
+      "\\begin{gather}",
+      "  ${1}",
+      "\\end{gather}$0"
+    ],
+    "description": "Centred equations"
+  },
+  "cases": {
+    "prefix": [
+      "cases"
+    ],
+    "body": [
+      "\\begin{cases}",
+      "  ${1:a} & \\text{if } ${2:x > 0}, \\\\\\\\",
+      "  ${3:b} & \\text{otherwise}.",
+      "\\end{cases}$0"
+    ],
+    "description": "Cases (inside maths)"
+  },
+  "pmatrix": {
+    "prefix": [
+      "pmatrix",
+      "mat"
+    ],
+    "body": [
+      "\\begin{pmatrix}",
+      "  ${1:a} & ${2:b} \\\\\\\\",
+      "  ${3:c} & ${4:d}",
+      "\\end{pmatrix}$0"
+    ],
+    "description": "Matrix in parentheses (inside maths)"
+  },
+  "Figure": {
+    "prefix": [
+      "fig",
+      "figure"
+    ],
+    "body": [
+      "![${1:Caption}](${2:file.pdf}){#fig:${3:label} width=${4:60}%}",
+      "$0"
+    ],
+    "description": "Figure with caption, label and width"
+  },
+  "Footnote": {
+    "prefix": [
+      "fn",
+      "footnote"
+    ],
+    "body": [
+      "^[${1:note}]$0"
+    ],
+    "description": "Footnote, text^[note]"
+  },
+  "Citation": {
+    "prefix": [
+      "cite"
+    ],
+    "body": [
+      "[@${1:key}]$0"
+    ],
+    "description": "Citation [@key]; [@key, p. 3] adds a page"
+  },
+  "Link": {
+    "prefix": [
+      "link"
+    ],
+    "body": [
+      "[${1:text}](${2:https://})$0"
+    ],
+    "description": "Link"
+  },
+  "Bulleted list": {
+    "prefix": [
+      "item",
+      "itemize",
+      "ul"
+    ],
+    "body": [
+      "- ${1}",
+      "- ${2}$0"
+    ],
+    "description": "Bulleted list"
+  },
+  "Numbered list": {
+    "prefix": [
+      "enum",
+      "enumerate",
+      "ol"
+    ],
+    "body": [
+      "1. ${1}",
+      "2. ${2}$0"
+    ],
+    "description": "Numbered list"
+  },
+  "TikZ picture": {
+    "prefix": [
+      "tikz"
+    ],
+    "body": [
+      "\\begin{center}",
+      "\\begin{tikzpicture}",
+      "  ${1:\\draw (0,0) -- (1,1);}",
+      "\\end{tikzpicture}",
+      "\\end{center}$0"
+    ],
+    "description": "TikZ picture, centred"
+  },
+  "Commutative diagram": {
+    "prefix": [
+      "tikzcd",
+      "cd"
+    ],
+    "body": [
+      "$$",
+      "\\begin{tikzcd}",
+      "  ${1:A} \\arrow[r, \"${2:f}\"] & ${3:B}",
+      "\\end{tikzcd}",
+      "$$$0"
+    ],
+    "description": "tikz-cd diagram (add tikz-cd to packages)"
+  },
+  "New command": {
+    "prefix": [
+      "newc",
+      "newcommand"
+    ],
+    "body": [
+      "\\newcommand{\\\\${1:name}}${2:[${3:1}]}{${4:definition}}$0"
+    ],
+    "description": "Define a macro"
+  },
+  "Math operator": {
+    "prefix": [
+      "dmo",
+      "operator"
+    ],
+    "body": [
+      "\\DeclareMathOperator{\\\\${1:name}}{${2:text}}$0"
+    ],
+    "description": "Operator name such as \\Hom (moves to the preamble)"
+  },
+  "Table": {
+    "prefix": [
+      "table",
+      "tab"
+    ],
+    "body": [
+      "\\begin{table}",
+      "\\centering",
+      "\\begin{tabular}{${1:ll}}",
+      "  ${2:a} & ${3:b} \\\\\\\\",
+      "\\end{tabular}",
+      "\\caption{${4:Caption}}\\label{tab:${5:label}}",
+      "\\end{table}$0"
+    ],
+    "description": "Table (pipe tables are not in TeXmark 0.1)"
+  }
+}
